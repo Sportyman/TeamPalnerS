@@ -1,0 +1,438 @@
+import React, { useState } from 'react';
+import { useAppStore } from '../store';
+import { Role, RoleLabel, Person, BoatType, BoatTypeLabel } from '../types';
+import { Trash2, UserPlus, Star, Edit, X, Save, ChevronDown, ChevronUp, Plus, Users } from 'lucide-react';
+
+export const Dashboard: React.FC = () => {
+  const { people, addPerson, updatePerson, removePerson } = useAppStore();
+  
+  // Add State
+  const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newRole, setNewRole] = useState<Role>(Role.VOLUNTEER);
+  const [newRank, setNewRank] = useState(3);
+
+  // Edit Modal State
+  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
+
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName) return;
+    addPerson({
+      id: Date.now().toString(),
+      name: newName,
+      role: newRole,
+      rank: newRank,
+    });
+    setNewName('');
+    // Optionally close form after add
+    // setIsAddFormOpen(false); 
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingPerson) {
+      updatePerson(editingPerson);
+      setEditingPerson(null);
+    }
+  };
+
+  const togglePartnerSelection = (partnerId: string) => {
+    if (!editingPerson) return;
+    const currentPartners = editingPerson.preferredPartners || [];
+    const isSelected = currentPartners.includes(partnerId);
+    
+    let newPartners;
+    if (isSelected) {
+      newPartners = currentPartners.filter(id => id !== partnerId);
+    } else {
+      newPartners = [...currentPartners, partnerId];
+    }
+    
+    setEditingPerson({ ...editingPerson, preferredPartners: newPartners });
+  };
+
+  const clearPartners = () => {
+    if (editingPerson) {
+      setEditingPerson({ ...editingPerson, preferredPartners: [] });
+    }
+  };
+
+  const getRankColor = (rank: number) => {
+    if (rank <= 2) return 'text-red-500';
+    if (rank === 3) return 'text-yellow-500';
+    return 'text-green-500';
+  };
+
+  const getRoleBadgeStyle = (role: Role) => {
+    switch (role) {
+      case Role.VOLUNTEER: return 'bg-orange-100 text-orange-700';
+      case Role.MEMBER: return 'bg-sky-100 text-sky-700';
+      case Role.GUEST: return 'bg-emerald-100 text-emerald-700';
+      default: return 'bg-slate-100 text-slate-700';
+    }
+  };
+
+  return (
+    <div className="space-y-6 pb-20">
+      
+      {/* Edit Modal - Full Screen on Mobile, Centered on Desktop */}
+      {editingPerson && (
+        <div className="fixed inset-0 z-50 flex md:items-center md:justify-center md:bg-black/50">
+          <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:w-full md:max-w-lg md:rounded-xl shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200">
+            {/* Header - Fixed at top */}
+            <div className="bg-brand-50 p-4 border-b border-brand-100 flex justify-between items-center shrink-0">
+              <h3 className="font-bold text-lg text-brand-800">עריכת משתתף</h3>
+              <button onClick={() => setEditingPerson(null)} className="text-slate-500 hover:text-slate-800" title="סגור חלון">
+                <X size={24} />
+              </button>
+            </div>
+            
+            {/* Scrollable Content */}
+            <form onSubmit={handleUpdate} className="p-4 space-y-4 overflow-y-auto flex-1 bg-white">
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">שם מלא</label>
+                  <input
+                    type="text"
+                    value={editingPerson.name}
+                    onChange={(e) => setEditingPerson({ ...editingPerson, name: e.target.value })}
+                    className="w-full px-3 py-3 md:py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-base"
+                    required
+                    title="שם המשתתף המלא"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">תפקיד</label>
+                  <select
+                    value={editingPerson.role}
+                    onChange={(e) => setEditingPerson({ ...editingPerson, role: e.target.value as Role })}
+                    className="w-full px-3 py-3 md:py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-base bg-white"
+                    title="בחר תפקיד במערכת"
+                  >
+                    <option value={Role.VOLUNTEER}>{RoleLabel[Role.VOLUNTEER]}</option>
+                    <option value={Role.MEMBER}>{RoleLabel[Role.MEMBER]}</option>
+                    <option value={Role.GUEST}>{RoleLabel[Role.GUEST]}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">דירוג (1-5)</label>
+                  <select
+                    value={editingPerson.rank}
+                    onChange={(e) => setEditingPerson({ ...editingPerson, rank: Number(e.target.value) })}
+                    className="w-full px-3 py-3 md:py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-base bg-white"
+                    title="רמת המיומנות (1 - מתחיל, 5 - מנוסה)"
+                  >
+                    {[1, 2, 3, 4, 5].map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">הערות כלליות</label>
+                <textarea
+                  value={editingPerson.notes || ''}
+                  onChange={(e) => setEditingPerson({ ...editingPerson, notes: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-base"
+                  rows={2}
+                  title="הערות רפואיות או כלליות"
+                />
+              </div>
+
+              <div className="border-t border-slate-100 pt-4">
+                <h4 className="font-semibold text-sm text-slate-900 mb-3">אילוצים והעדפות</h4>
+                
+                <div className="space-y-4">
+                   <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">סירה מועדפת</label>
+                    <select
+                      value={editingPerson.constraints?.preferredBoat || ''}
+                      onChange={(e) => setEditingPerson({ 
+                        ...editingPerson, 
+                        constraints: { 
+                          ...editingPerson.constraints, 
+                          preferredBoat: e.target.value ? e.target.value as BoatType : undefined 
+                        } 
+                      })}
+                      className="w-full px-3 py-3 md:py-2 border rounded-md text-base bg-white"
+                      title="העדפת סוג כלי שיט לשיבוץ"
+                    >
+                      <option value="">ללא העדפה</option>
+                      {Object.entries(BoatTypeLabel).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                   <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-medium text-slate-500">
+                        שותפים מועדפים ({editingPerson.preferredPartners?.length || 0})
+                      </label>
+                      {(editingPerson.preferredPartners?.length || 0) > 0 && (
+                        <button 
+                          type="button"
+                          onClick={clearPartners}
+                          className="text-xs text-red-500 font-medium hover:bg-red-50 px-2 py-1 rounded"
+                        >
+                          נקה הכל
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Multi-Select List */}
+                    <div className="border rounded-md max-h-48 overflow-y-auto bg-slate-50 divide-y divide-slate-100">
+                      {people.filter(p => p.id !== editingPerson.id).map(p => {
+                        const isSelected = editingPerson.preferredPartners?.includes(p.id);
+                        return (
+                          <label 
+                            key={p.id} 
+                            className={`flex items-center justify-between p-3 cursor-pointer transition-colors ${isSelected ? 'bg-brand-50' : 'bg-white hover:bg-slate-50'}`}
+                          >
+                            <span className={`text-sm ${isSelected ? 'font-medium text-brand-700' : 'text-slate-700'}`}>
+                              {p.name}
+                            </span>
+                            <input
+                              type="checkbox"
+                              checked={isSelected || false}
+                              onChange={() => togglePartnerSelection(p.id)}
+                              className="w-5 h-5 text-brand-600 rounded border-slate-300 focus:ring-brand-500"
+                            />
+                          </label>
+                        );
+                      })}
+                      {people.length <= 1 && (
+                        <div className="p-4 text-center text-slate-400 text-xs">
+                          אין משתתפים נוספים לבחירה
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">סמן את המשתתפים המועדפים לאימון משותף</p>
+                  </div>
+                </div>
+              </div>
+
+            </form>
+
+            {/* Footer - Fixed at bottom */}
+            <div className="p-4 border-t border-slate-100 shrink-0 flex gap-3 bg-slate-50 safe-area-bottom">
+              <button
+                onClick={handleUpdate}
+                className="flex-1 bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm text-lg md:text-base"
+                title="שמור את השינויים"
+              >
+                <Save size={20} /> שמירה
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingPerson(null)}
+                className="px-6 py-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-medium text-lg md:text-base"
+                title="בטל עריכה"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Accordion: Add Person Form */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
+        <button 
+          onClick={() => setIsAddFormOpen(!isAddFormOpen)}
+          className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
+          title={isAddFormOpen ? "סגור טופס הוספה" : "פתח טופס הוספת משתתף"}
+        >
+          <div className="flex items-center gap-2 font-bold text-slate-700">
+            <div className="bg-brand-100 text-brand-600 p-1 rounded-full"><Plus size={16} /></div>
+            הוספת משתתף חדש
+          </div>
+          {isAddFormOpen ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+        </button>
+
+        {isAddFormOpen && (
+          <div className="p-6 border-t border-slate-100 animate-in slide-in-from-top-2">
+            <form onSubmit={handleAdd} className="flex flex-col md:flex-row gap-4 items-end">
+              <div className="flex-1 w-full">
+                <label className="block text-sm font-medium text-slate-600 mb-1">שם מלא</label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
+                  placeholder="לדוגמה: ישראל ישראלי"
+                  title="הכנס את שם המשתתף"
+                />
+              </div>
+              <div className="w-full md:w-48">
+                <label className="block text-sm font-medium text-slate-600 mb-1">תפקיד</label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as Role)}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
+                  title="בחר את סוג המשתתף"
+                >
+                  <option value={Role.VOLUNTEER}>{RoleLabel[Role.VOLUNTEER]}</option>
+                  <option value={Role.MEMBER}>{RoleLabel[Role.MEMBER]}</option>
+                  <option value={Role.GUEST}>{RoleLabel[Role.GUEST]}</option>
+                </select>
+              </div>
+              <div className="w-full md:w-32">
+                <label className="block text-sm font-medium text-slate-600 mb-1">דירוג (1-5)</label>
+                <select
+                  value={newRank}
+                  onChange={(e) => setNewRank(Number(e.target.value))}
+                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
+                  title="רמת המשתתף (1 - הכי נמוך, 5 - הכי גבוה)"
+                >
+                  {[1, 2, 3, 4, 5].map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="submit"
+                className="w-full md:w-auto bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-md flex items-center justify-center gap-2"
+                title="הוסף את המשתתף למערכת"
+              >
+                <UserPlus size={18} /> הוסף
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Card List View */}
+      <div className="md:hidden space-y-3">
+        {people.map((person) => (
+          <div key={person.id} className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+             <div className="flex justify-between items-start mb-3">
+               <div>
+                 <h3 className="font-bold text-slate-800 text-lg">{person.name}</h3>
+                 <span className={`inline-block px-2 py-1 rounded-md text-xs font-semibold mt-1 ${getRoleBadgeStyle(person.role)}`}>
+                   {RoleLabel[person.role]}
+                 </span>
+               </div>
+               <div className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded">
+                  <span className="text-xs text-slate-500 font-medium">רמה {person.rank}</span>
+                  <Star size={14} className={`fill-current ${getRankColor(person.rank)}`} />
+               </div>
+             </div>
+
+             {person.notes && (
+               <div className="text-sm text-slate-500 bg-slate-50 p-2 rounded mb-3">
+                 {person.notes}
+               </div>
+             )}
+
+             <div className="flex flex-wrap gap-2 text-xs text-slate-500 mb-4">
+                {person.constraints?.preferredBoat && (
+                   <span className="bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                     ⛵ {BoatTypeLabel[person.constraints.preferredBoat]}
+                   </span>
+                )}
+                {person.preferredPartners && person.preferredPartners.length > 0 && (
+                   <span className="bg-slate-100 px-2 py-1 rounded border border-slate-200 flex items-center gap-1">
+                     <Users size={12}/> {person.preferredPartners.length} שותפים
+                   </span>
+                )}
+             </div>
+
+             <div className="flex gap-2 border-t border-slate-100 pt-3">
+                <button
+                  onClick={() => setEditingPerson(person)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100 transition-colors font-medium text-sm"
+                >
+                  <Edit size={16} /> עריכה
+                </button>
+                <button
+                  onClick={() => removePerson(person.id)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors font-medium text-sm"
+                >
+                  <Trash2 size={16} /> מחיקה
+                </button>
+             </div>
+          </div>
+        ))}
+        {people.length === 0 && (
+           <div className="text-center py-10 text-slate-400">
+             לא נמצאו משתתפים. הוסף חדש באמצעות הטופס למעלה.
+           </div>
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <table className="w-full text-right">
+          <thead className="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider">
+            <tr>
+              <th className="px-6 py-3">שם</th>
+              <th className="px-6 py-3">תפקיד</th>
+              <th className="px-6 py-3">דירוג</th>
+              <th className="px-6 py-3">אילוצים</th>
+              <th className="px-6 py-3 text-left">פעולות</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {people.map((person) => (
+              <tr key={person.id} className="hover:bg-slate-50">
+                <td className="px-6 py-4 font-medium text-slate-800">
+                  {person.name}
+                  {person.notes && <div className="text-xs text-slate-400 mt-1">{person.notes}</div>}
+                </td>
+                <td className="px-6 py-4">
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getRoleBadgeStyle(person.role)}`}>
+                    {RoleLabel[person.role]}
+                  </span>
+                </td>
+                <td className="px-6 py-4 flex items-center gap-1">
+                  {Array.from({ length: person.rank }).map((_, i) => (
+                    <Star key={i} size={14} className={`fill-current ${getRankColor(person.rank)}`} />
+                  ))}
+                </td>
+                <td className="px-6 py-4 text-xs text-slate-500">
+                  {person.constraints?.preferredBoat && (
+                     <div className="mb-1">סירה: {BoatTypeLabel[person.constraints.preferredBoat]}</div>
+                  )}
+                  {person.preferredPartners && person.preferredPartners.length > 0 && (
+                     <div>שותפים: {person.preferredPartners.length}</div>
+                  )}
+                </td>
+                <td className="px-6 py-4 text-left">
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setEditingPerson(person)}
+                      className="text-slate-400 hover:text-brand-500 transition-colors p-2 hover:bg-slate-100 rounded-full"
+                      title="ערוך פרטי משתתף"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button
+                      onClick={() => removePerson(person.id)}
+                      className="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-slate-100 rounded-full"
+                      title="מחק משתתף"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {people.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
+                  לא נמצאו משתתפים. הוסף למעלה.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
