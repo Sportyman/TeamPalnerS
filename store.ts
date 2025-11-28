@@ -2,16 +2,16 @@ import { create } from 'zustand';
 import { Person, Role, SessionState, Team, BoatInventory } from './types';
 import { generateSmartPairings } from './services/pairingLogic';
 
-// Mock Initial Data
+// Mock Initial Data - Cleaned names for privacy
 const MOCK_PEOPLE: Person[] = [
-  { id: '1', name: 'שרה (מתנדבת)', role: Role.VOLUNTEER, rank: 5, notes: 'חותרת חזקה' },
-  { id: '2', name: 'מייק (חדש)', role: Role.VOLUNTEER, rank: 2 },
-  { id: '3', name: 'ג\'סיקה (צריכה עזרה)', role: Role.MEMBER, rank: 1, notes: 'צריכה תמיכה בגב' },
-  { id: '4', name: 'תום (עצמאי)', role: Role.MEMBER, rank: 4 },
-  { id: '5', name: 'אלכס (בינוני)', role: Role.VOLUNTEER, rank: 3 },
-  { id: '6', name: 'אמילי (בינונית)', role: Role.MEMBER, rank: 2 },
-  { id: '7', name: 'דוד (מנוסה)', role: Role.VOLUNTEER, rank: 5 },
-  { id: '8', name: 'כריס (חדש)', role: Role.MEMBER, rank: 2 },
+  { id: '1', name: 'שרה כהן', role: Role.VOLUNTEER, rank: 5, notes: 'חותרת חזקה' },
+  { id: '2', name: 'מייק לוי', role: Role.VOLUNTEER, rank: 2 },
+  { id: '3', name: 'ג\'סיקה אלמוג', role: Role.MEMBER, rank: 1, notes: 'צריכה עזרה, תמיכה בגב' },
+  { id: '4', name: 'תום ירושלמי', role: Role.MEMBER, rank: 4 },
+  { id: '5', name: 'אלכס גורן', role: Role.VOLUNTEER, rank: 3 },
+  { id: '6', name: 'אמילי צור', role: Role.MEMBER, rank: 2 },
+  { id: '7', name: 'דוד המלך', role: Role.VOLUNTEER, rank: 5 },
+  { id: '8', name: 'כריס פראט', role: Role.MEMBER, rank: 2 },
 ];
 
 const DEFAULT_INVENTORY: BoatInventory = {

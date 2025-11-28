@@ -111,7 +111,8 @@ export const PublicPairingView: React.FC = () => {
                       <span className="font-medium text-slate-800 text-xl">
                         {member.name}
                       </span>
-                      <span className="text-xs text-slate-400 mr-auto print:hidden">
+                      {/* Removed print:hidden so role is visible in print/public view */}
+                      <span className="text-xs text-slate-400 mr-auto">
                         {RoleLabel[member.role]}
                       </span>
                     </div>

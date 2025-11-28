@@ -11,6 +11,9 @@ export const Dashboard: React.FC = () => {
   const [newName, setNewName] = useState('');
   const [newRole, setNewRole] = useState<Role>(Role.VOLUNTEER);
   const [newRank, setNewRank] = useState(3);
+  const [newNotes, setNewNotes] = useState('');
+  const [newPreferredBoat, setNewPreferredBoat] = useState<BoatType | ''>('');
+  const [newPreferredPartners, setNewPreferredPartners] = useState<string[]>([]);
 
   // Edit Modal State
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
@@ -18,15 +21,25 @@ export const Dashboard: React.FC = () => {
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName) return;
+    
     addPerson({
       id: Date.now().toString(),
       name: newName,
       role: newRole,
       rank: newRank,
+      notes: newNotes,
+      constraints: newPreferredBoat ? { preferredBoat: newPreferredBoat } : undefined,
+      preferredPartners: newPreferredPartners.length > 0 ? newPreferredPartners : undefined
     });
+    
+    // Reset form
     setNewName('');
-    // Optionally close form after add
-    // setIsAddFormOpen(false); 
+    setNewNotes('');
+    setNewPreferredBoat('');
+    setNewPreferredPartners([]);
+    setNewRole(Role.VOLUNTEER);
+    setNewRank(3);
+    setIsAddFormOpen(false); 
   };
 
   const handleUpdate = (e: React.FormEvent) => {
@@ -37,7 +50,8 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const togglePartnerSelection = (partnerId: string) => {
+  // Toggle helpers for Edit Mode
+  const togglePartnerSelectionEdit = (partnerId: string) => {
     if (!editingPerson) return;
     const currentPartners = editingPerson.preferredPartners || [];
     const isSelected = currentPartners.includes(partnerId);
@@ -52,9 +66,13 @@ export const Dashboard: React.FC = () => {
     setEditingPerson({ ...editingPerson, preferredPartners: newPartners });
   };
 
-  const clearPartners = () => {
-    if (editingPerson) {
-      setEditingPerson({ ...editingPerson, preferredPartners: [] });
+  // Toggle helpers for Add Mode
+  const togglePartnerSelectionAdd = (partnerId: string) => {
+    const isSelected = newPreferredPartners.includes(partnerId);
+    if (isSelected) {
+      setNewPreferredPartners(newPreferredPartners.filter(id => id !== partnerId));
+    } else {
+      setNewPreferredPartners([...newPreferredPartners, partnerId]);
     }
   };
 
@@ -177,7 +195,7 @@ export const Dashboard: React.FC = () => {
                       {(editingPerson.preferredPartners?.length || 0) > 0 && (
                         <button 
                           type="button"
-                          onClick={clearPartners}
+                          onClick={() => setEditingPerson({ ...editingPerson, preferredPartners: [] })}
                           className="text-xs text-red-500 font-medium hover:bg-red-50 px-2 py-1 rounded"
                         >
                           נקה הכל
@@ -200,19 +218,13 @@ export const Dashboard: React.FC = () => {
                             <input
                               type="checkbox"
                               checked={isSelected || false}
-                              onChange={() => togglePartnerSelection(p.id)}
+                              onChange={() => togglePartnerSelectionEdit(p.id)}
                               className="w-5 h-5 text-brand-600 rounded border-slate-300 focus:ring-brand-500"
                             />
                           </label>
                         );
                       })}
-                      {people.length <= 1 && (
-                        <div className="p-4 text-center text-slate-400 text-xs">
-                          אין משתתפים נוספים לבחירה
-                        </div>
-                      )}
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">סמן את המשתתפים המועדפים לאימון משותף</p>
                   </div>
                 </div>
               </div>
@@ -241,7 +253,7 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Accordion: Add Person Form */}
+      {/* Accordion: Add Person Form (Expanded with all fields) */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <button 
           onClick={() => setIsAddFormOpen(!isAddFormOpen)}
@@ -257,50 +269,106 @@ export const Dashboard: React.FC = () => {
 
         {isAddFormOpen && (
           <div className="p-6 border-t border-slate-100 animate-in slide-in-from-top-2">
-            <form onSubmit={handleAdd} className="flex flex-col md:flex-row gap-4 items-end">
-              <div className="flex-1 w-full">
-                <label className="block text-sm font-medium text-slate-600 mb-1">שם מלא</label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
+            <form onSubmit={handleAdd} className="space-y-4">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-1">שם מלא</label>
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
+                      placeholder="לדוגמה: ישראל ישראלי"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-600 mb-1">תפקיד</label>
+                        <select
+                        value={newRole}
+                        onChange={(e) => setNewRole(e.target.value as Role)}
+                        className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
+                        >
+                        <option value={Role.VOLUNTEER}>{RoleLabel[Role.VOLUNTEER]}</option>
+                        <option value={Role.MEMBER}>{RoleLabel[Role.MEMBER]}</option>
+                        <option value={Role.GUEST}>{RoleLabel[Role.GUEST]}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-600 mb-1">דירוג</label>
+                        <select
+                        value={newRank}
+                        onChange={(e) => setNewRank(Number(e.target.value))}
+                        className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
+                        >
+                        {[1, 2, 3, 4, 5].map((r) => (
+                            <option key={r} value={r}>{r}</option>
+                        ))}
+                        </select>
+                    </div>
+                  </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">הערות</label>
+                <textarea
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
-                  placeholder="לדוגמה: ישראל ישראלי"
-                  title="הכנס את שם המשתתף"
+                  rows={1}
+                  placeholder="הערות רפואיות או כלליות..."
                 />
               </div>
-              <div className="w-full md:w-48">
-                <label className="block text-sm font-medium text-slate-600 mb-1">תפקיד</label>
-                <select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as Role)}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
-                  title="בחר את סוג המשתתף"
-                >
-                  <option value={Role.VOLUNTEER}>{RoleLabel[Role.VOLUNTEER]}</option>
-                  <option value={Role.MEMBER}>{RoleLabel[Role.MEMBER]}</option>
-                  <option value={Role.GUEST}>{RoleLabel[Role.GUEST]}</option>
-                </select>
+
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                  <h4 className="font-semibold text-sm text-slate-700 mb-3">הגדרות מתקדמות (אופציונלי)</h4>
+                  <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1">סירה מועדפת</label>
+                        <select
+                        value={newPreferredBoat}
+                        onChange={(e) => setNewPreferredBoat(e.target.value as BoatType | '')}
+                        className="w-full md:w-1/2 px-3 py-2 border rounded-md bg-white text-sm"
+                        >
+                        <option value="">ללא העדפה</option>
+                        {Object.entries(BoatTypeLabel).map(([key, label]) => (
+                            <option key={key} value={key}>{label}</option>
+                        ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <div className="flex justify-between items-center mb-1">
+                             <label className="block text-xs font-medium text-slate-500">שותפים מועדפים ({newPreferredPartners.length})</label>
+                             {newPreferredPartners.length > 0 && (
+                                 <button type="button" onClick={() => setNewPreferredPartners([])} className="text-xs text-red-500">נקה הכל</button>
+                             )}
+                        </div>
+                        <div className="border rounded-md max-h-32 overflow-y-auto bg-white divide-y divide-slate-100">
+                            {people.map(p => (
+                                <label key={p.id} className="flex items-center justify-between p-2 hover:bg-slate-50 cursor-pointer">
+                                    <span className="text-sm text-slate-700">{p.name}</span>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={newPreferredPartners.includes(p.id)}
+                                        onChange={() => togglePartnerSelectionAdd(p.id)}
+                                        className="w-4 h-4 text-brand-600 rounded"
+                                    />
+                                </label>
+                            ))}
+                            {people.length === 0 && <div className="p-2 text-xs text-slate-400">אין משתתפים אחרים</div>}
+                        </div>
+                    </div>
+                  </div>
               </div>
-              <div className="w-full md:w-32">
-                <label className="block text-sm font-medium text-slate-600 mb-1">דירוג (1-5)</label>
-                <select
-                  value={newRank}
-                  onChange={(e) => setNewRank(Number(e.target.value))}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
-                  title="רמת המשתתף (1 - הכי נמוך, 5 - הכי גבוה)"
-                >
-                  {[1, 2, 3, 4, 5].map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-              </div>
+
               <button
                 type="submit"
-                className="w-full md:w-auto bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-md flex items-center justify-center gap-2"
-                title="הוסף את המשתתף למערכת"
+                className="w-full bg-brand-600 hover:bg-brand-500 text-white px-4 py-3 rounded-lg flex items-center justify-center gap-2 font-bold shadow-sm"
               >
-                <UserPlus size={18} /> הוסף
+                <UserPlus size={20} /> הוסף משתתף
               </button>
             </form>
           </div>
