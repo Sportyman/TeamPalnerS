@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { Team, Role, RoleLabel, BoatTypeLabel } from '../types';
-import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw } from 'lucide-react';
+import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 export const PairingBoard: React.FC = () => {
@@ -101,6 +101,12 @@ export const PairingBoard: React.FC = () => {
     }
   };
 
+  const getRankColor = (rank: number) => {
+    if (rank <= 2) return 'text-red-500';
+    if (rank === 3) return 'text-yellow-500';
+    return 'text-green-500';
+  };
+
   return (
     <div className="space-y-6 pb-20"> 
       
@@ -195,7 +201,7 @@ export const PairingBoard: React.FC = () => {
                 >
                 {/* Header */}
                 <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <span className="font-bold text-slate-700 text-sm">{BoatTypeLabel[team.boatType]} x{team.boatCount}</span>
+                    <span className="font-bold text-slate-700 text-sm">{BoatTypeLabel[team.boatType]}</span>
                     {team.warnings && team.warnings.length > 0 && (
                     <div title={team.warnings.join(', ')} className="cursor-help">
                       <div>
@@ -257,7 +263,19 @@ export const PairingBoard: React.FC = () => {
                                 
                                 <div className="flex-1 flex flex-col px-2">
                                     <span className="font-semibold text-slate-800 text-sm">{member.name}</span>
-                                    <span className="text-[10px] text-slate-500 uppercase">{RoleLabel[member.role]} • רמה {member.rank}</span>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-[10px] text-slate-500 uppercase">{RoleLabel[member.role]}</span>
+                                      <div className="flex">
+                                        {Array.from({ length: member.rank }).map((_, i) => (
+                                          <Star key={i} size={10} className={`fill-current ${getRankColor(member.rank)}`} />
+                                        ))}
+                                      </div>
+                                    </div>
+                                    {member.notes && (
+                                       <div className="text-[10px] text-red-600 truncate mt-0.5 max-w-[120px]" title={member.notes}>
+                                          {member.notes}
+                                       </div>
+                                    )}
                                 </div>
 
                                 {/* Grip Icon (Visual Only now) */}

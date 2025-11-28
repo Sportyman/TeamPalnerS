@@ -433,9 +433,10 @@ export const Dashboard: React.FC = () => {
              </div>
 
              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
-                <div className="flex items-center gap-1">
-                  <Star size={12} className={`fill-current ${getRankColor(person.rank)}`} />
-                  <span>רמה {person.rank}</span>
+                <div className="flex items-center gap-0.5">
+                   {Array.from({ length: person.rank }).map((_, i) => (
+                      <Star key={i} size={12} className={`fill-current ${getRankColor(person.rank)}`} />
+                    ))}
                 </div>
                 {person.phone && (
                   <div className="flex items-center gap-1">
