@@ -64,9 +64,12 @@ export const SessionManager: React.FC = () => {
   const presentVolunteers = people.filter(p => session.presentPersonIds.includes(p.id) && p.role === Role.VOLUNTEER).length;
   const presentMembers = people.filter(p => session.presentPersonIds.includes(p.id) && p.role === Role.MEMBER).length;
   const presentGuests = people.filter(p => session.presentPersonIds.includes(p.id) && p.role === Role.GUEST).length;
+  
+  // Calculate total boats for step 2
+  const totalBoats = localInventory.doubles + localInventory.singles + localInventory.privates;
 
   const getCardStyle = (role: Role, isPresent: boolean) => {
-      const baseStyle = "flex items-center justify-between p-4 rounded-lg border text-right transition-all duration-200";
+      const baseStyle = "flex items-center justify-between p-4 rounded-lg border text-right transition-all duration-200 select-none";
       
       if (!isPresent) return `${baseStyle} border-slate-200 hover:bg-slate-50 text-slate-600`;
 
@@ -155,23 +158,44 @@ export const SessionManager: React.FC = () => {
 
       {step === 1 && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-            <h2 className="text-2xl font-bold text-slate-800">מי הגיע היום?</h2>
-            <div className="flex gap-2 text-sm">
-              <button 
-                onClick={selectAll}
-                className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
-                title="סמן את כל המשתתפים כנוכחים"
-              >
-                <CheckSquare size={16} /> בחר הכל
-              </button>
-              <button 
-                onClick={clearAll}
-                className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
-                title="נקה את כל הסימונים"
-              >
-                <Square size={16} /> נקה
-              </button>
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+               <div className="flex flex-col gap-1">
+                 <h2 className="text-2xl font-bold text-slate-800">מי הגיע היום?</h2>
+                 <div className="flex flex-wrap gap-2 text-xs md:text-sm mt-1">
+                    <span className="text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-100 font-medium">
+                        מתנדבים: {presentVolunteers}
+                    </span>
+                    <span className="text-sky-700 bg-sky-50 px-2 py-1 rounded border border-sky-100 font-medium">
+                        חברים: {presentMembers}
+                    </span>
+                    {presentGuests > 0 && (
+                        <span className="text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 font-medium">
+                            אורחים: {presentGuests}
+                        </span>
+                    )}
+                     <span className="text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 font-medium">
+                        סה"כ: {session.presentPersonIds.length}
+                    </span>
+                </div>
+               </div>
+
+                <div className="flex gap-2 text-sm self-end md:self-center">
+                <button 
+                    onClick={selectAll}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
+                    title="סמן את כל המשתתפים כנוכחים"
+                >
+                    <CheckSquare size={16} /> בחר הכל
+                </button>
+                <button 
+                    onClick={clearAll}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
+                    title="נקה את כל הסימונים"
+                >
+                    <Square size={16} /> נקה
+                </button>
+                </div>
             </div>
           </div>
           
@@ -205,26 +229,7 @@ export const SessionManager: React.FC = () => {
             })}
           </div>
           
-          <div className="mt-8 pt-4 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex flex-col gap-2 w-full md:w-auto">
-                <div className="text-sm text-slate-500">
-                סה"כ נבחרו: <span className="font-bold text-slate-900">{session.presentPersonIds.length}</span>
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs md:text-sm">
-                    <span className="text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-100 font-medium">
-                        מתנדבים: {presentVolunteers}
-                    </span>
-                    <span className="text-sky-700 bg-sky-50 px-2 py-1 rounded border border-sky-100 font-medium">
-                        חברים: {presentMembers}
-                    </span>
-                    {presentGuests > 0 && (
-                        <span className="text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 font-medium">
-                            אורחים: {presentGuests}
-                        </span>
-                    )}
-                </div>
-            </div>
-
+          <div className="mt-8 pt-4 border-t border-slate-100 flex justify-end">
             <button
               onClick={() => setStep(2)}
               disabled={session.presentPersonIds.length === 0}
@@ -239,11 +244,16 @@ export const SessionManager: React.FC = () => {
 
       {step === 2 && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-xl mx-auto">
-          <div className="flex justify-between items-start mb-6">
-            <h2 className="text-2xl font-bold text-slate-800">ציוד זמין</h2>
+          <div className="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
+             <div>
+                <h2 className="text-2xl font-bold text-slate-800">ציוד זמין</h2>
+                <span className="text-sm text-slate-500 mt-1 block">
+                    סה"כ כלי שיט: <span className="font-bold text-brand-600">{totalBoats}</span>
+                </span>
+             </div>
             <button 
               onClick={handleSaveDefault}
-              className="text-xs text-brand-600 hover:bg-brand-50 px-2 py-1 rounded flex items-center gap-1 transition-colors"
+              className="text-xs text-brand-600 hover:bg-brand-50 px-3 py-2 rounded-md flex items-center gap-1 transition-colors border border-brand-100"
               title="שמור את הכמויות הנוכחיות כברירת המחדל לאימונים הבאים"
             >
               <Save size={14} /> 

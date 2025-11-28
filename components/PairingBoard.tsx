@@ -109,7 +109,7 @@ export const PairingBoard: React.FC = () => {
         <div>
           <h2 className="text-xl md:text-2xl font-bold text-slate-800">שיבוצי אימון</h2>
           <p className="text-xs md:text-sm text-slate-500 mt-1">
-            גרור לשנות סדר, או לחץ על {<ArrowRightLeft className="inline w-3 h-3"/>} להחלפה בין זוגות
+            גרור משתתף לשנות סדר, או לחץ על {<ArrowRightLeft className="inline w-3 h-3"/>} להחלפה בין זוגות
           </p>
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
@@ -178,7 +178,9 @@ export const PairingBoard: React.FC = () => {
                     <span className="font-bold text-slate-700 text-sm">{BoatTypeLabel[team.boatType]} x{team.boatCount}</span>
                     {team.warnings && team.warnings.length > 0 && (
                     <div title={team.warnings.join(', ')}>
-                      <AlertTriangle className="text-amber-500" size={16} />
+                       <div title={team.warnings.join(', ')} className="cursor-help">
+                        <AlertTriangle className="text-amber-500" size={16} />
+                      </div>
                     </div>
                     )}
                 </div>
@@ -209,6 +211,7 @@ export const PairingBoard: React.FC = () => {
                                 <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
+                                {...provided.dragHandleProps}
                                 style={{
                                     ...provided.draggableProps.style,
                                     transform: snapshot.isDragging 
@@ -216,7 +219,7 @@ export const PairingBoard: React.FC = () => {
                                     : provided.draggableProps.style?.transform,
                                 }}
                                 className={`
-                                    relative group
+                                    relative group touch-none
                                     p-3 rounded-lg border flex items-center justify-between select-none
                                     transition-all duration-200
                                     ${snapshot.isDragging 
@@ -227,29 +230,31 @@ export const PairingBoard: React.FC = () => {
                                     ${isSwappingMe ? 'ring-2 ring-brand-500 ring-offset-1' : ''}
                                     ${swapSource && !isSwappingMe ? 'cursor-pointer hover:bg-brand-50' : ''}
                                 `}
-                                title={`לחץ להחלפה או גרור לשינוי מיקום. רמה: ${member.rank}`}
+                                onClick={() => swapSource && handleSwapClick(team.id, index)}
+                                title={`לחץ והחזק לגרירה, או השתמש בכפתור החצים להחלפה. רמה: ${member.rank}`}
                                 >
-                                {/* Drag Handle */}
-                                <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing p-1" title="גרור לשנות מיקום">
-                                    <GripVertical size={18} className="text-slate-400" />
-                                </div>
-
-                                <div className="flex-1 flex flex-col px-2" onClick={() => swapSource && handleSwapClick(team.id, index)}>
+                                
+                                <div className="flex-1 flex flex-col px-2">
                                     <span className="font-semibold text-slate-800 text-sm">{member.name}</span>
                                     <span className="text-[10px] text-slate-500 uppercase">{RoleLabel[member.role]} • רמה {member.rank}</span>
+                                </div>
+
+                                {/* Grip Icon (Visual Only now) */}
+                                <div className="p-1 text-slate-300">
+                                    <GripVertical size={16} />
                                 </div>
 
                                 {/* Swap Button */}
                                 <button 
                                     onClick={(e) => {
-                                    e.stopPropagation();
+                                    e.stopPropagation(); // Prevent Drag Start
                                     handleSwapClick(team.id, index);
                                     }}
                                     className={`
-                                    p-1.5 rounded-md transition-colors
+                                    p-1.5 rounded-md transition-colors z-10
                                     ${isSwappingMe 
                                         ? 'bg-brand-500 text-white' 
-                                        : 'text-slate-400 hover:bg-white hover:text-brand-600 hover:shadow-sm opacity-0 group-hover:opacity-100'
+                                        : 'text-slate-400 hover:bg-white hover:text-brand-600 hover:shadow-sm opacity-0 group-hover:opacity-100 md:opacity-0 opacity-100'
                                     }
                                     ${swapSource ? 'opacity-100' : ''}
                                     `}
