@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { Team, Role, RoleLabel, BoatTypeLabel } from '../types';
-import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send } from 'lucide-react';
+import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 export const PairingBoard: React.FC = () => {
-  const { session, reorderSessionMembers, swapMembers } = useAppStore();
+  const { session, reorderSessionMembers, swapMembers, undo, redo, history, future } = useAppStore();
   const [showShareMenu, setShowShareMenu] = useState(false);
   
   // Swap Mode State
@@ -105,25 +105,45 @@ export const PairingBoard: React.FC = () => {
     <div className="space-y-6 pb-20"> 
       
       {/* Screen Header - Hidden on Print */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 print:hidden">
         <div>
           <h2 className="text-xl md:text-2xl font-bold text-slate-800">שיבוצי אימון</h2>
           <p className="text-xs md:text-sm text-slate-500 mt-1">
             גרור משתתף לשנות סדר, או לחץ על {<ArrowRightLeft className="inline w-3 h-3"/>} להחלפה בין זוגות
           </p>
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-col md:flex-row items-center gap-2 w-full xl:w-auto">
             {swapSource && (
             <div className="bg-brand-100 text-brand-800 px-3 py-1 rounded-full text-xs font-bold animate-pulse flex-1 text-center md:flex-none">
                 בחר משתתף שני...
             </div>
             )}
             
-            <div className="relative flex gap-2 w-full md:w-auto">
+             {/* Undo/Redo Buttons */}
+            <div className="flex gap-2 w-full md:w-auto">
+               <button
+                  onClick={undo}
+                  disabled={history.length === 0}
+                  className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="בטל פעולה אחרונה"
+               >
+                 <RotateCcw size={18} />
+               </button>
+               <button
+                  onClick={redo}
+                  disabled={future.length === 0}
+                  className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="שחזר פעולה שבוטלה"
+               >
+                 <RotateCw size={18} />
+               </button>
+            </div>
+            
+            <div className="relative flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
                
                <button 
                   onClick={handleOpenPublicView}
-                  className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
                   title="פתח תצוגה נקייה בחלון חדש"
               >
                   <Eye size={16} /> תצוגה
@@ -131,7 +151,7 @@ export const PairingBoard: React.FC = () => {
 
                <button 
                   onClick={() => setShowShareMenu(!showShareMenu)}
-                  className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
                   title="שתף רשימה נקייה (ללא דירוגים)"
               >
                   <Share2 size={16} /> שיתוף
@@ -153,7 +173,7 @@ export const PairingBoard: React.FC = () => {
 
               <button 
                   onClick={handlePrint}
-                  className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
                   title="הדפס דף שיבוצים נקי (ללא דירוגים)"
               >
                   <Printer size={16} /> הדפס
@@ -177,8 +197,8 @@ export const PairingBoard: React.FC = () => {
                 <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                     <span className="font-bold text-slate-700 text-sm">{BoatTypeLabel[team.boatType]} x{team.boatCount}</span>
                     {team.warnings && team.warnings.length > 0 && (
-                    <div title={team.warnings.join(', ')}>
-                       <div title={team.warnings.join(', ')} className="cursor-help">
+                    <div title={team.warnings.join(', ')} className="cursor-help">
+                      <div>
                         <AlertTriangle className="text-amber-500" size={16} />
                       </div>
                     </div>
@@ -217,9 +237,10 @@ export const PairingBoard: React.FC = () => {
                                     transform: snapshot.isDragging 
                                     ? `${provided.draggableProps.style?.transform} rotate(-2deg) scale(1.05)` 
                                     : provided.draggableProps.style?.transform,
+                                    touchAction: 'none' // Critical fix for mobile scrolling while dragging
                                 }}
                                 className={`
-                                    relative group touch-none
+                                    relative group
                                     p-3 rounded-lg border flex items-center justify-between select-none
                                     transition-all duration-200
                                     ${snapshot.isDragging 

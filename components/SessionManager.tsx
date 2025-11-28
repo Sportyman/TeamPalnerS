@@ -158,19 +158,21 @@ export const SessionManager: React.FC = () => {
 
       {step === 1 && (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex flex-col gap-4 mb-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-               <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-6 mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+               <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
                  <h2 className="text-2xl font-bold text-slate-800">מי הגיע היום?</h2>
-                 <div className="flex flex-wrap gap-2 text-xs md:text-sm mt-1">
-                    <span className="text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-100 font-medium">
+                 
+                 {/* Stats Badges - Now next to header */}
+                 <div className="flex flex-wrap gap-2 text-xs md:text-sm">
+                    <span className="text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-200 font-medium">
                         מתנדבים: {presentVolunteers}
                     </span>
-                    <span className="text-sky-700 bg-sky-50 px-2 py-1 rounded border border-sky-100 font-medium">
+                    <span className="text-sky-700 bg-sky-50 px-2 py-1 rounded border border-sky-200 font-medium">
                         חברים: {presentMembers}
                     </span>
                     {presentGuests > 0 && (
-                        <span className="text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 font-medium">
+                        <span className="text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 font-medium">
                             אורחים: {presentGuests}
                         </span>
                     )}
@@ -180,21 +182,22 @@ export const SessionManager: React.FC = () => {
                 </div>
                </div>
 
-                <div className="flex gap-2 text-sm self-end md:self-center">
-                <button 
-                    onClick={selectAll}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
-                    title="סמן את כל המשתתפים כנוכחים"
-                >
-                    <CheckSquare size={16} /> בחר הכל
-                </button>
-                <button 
-                    onClick={clearAll}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
-                    title="נקה את כל הסימונים"
-                >
-                    <Square size={16} /> נקה
-                </button>
+               {/* Action Buttons */}
+                <div className="flex gap-2 text-sm self-end md:self-center shrink-0">
+                    <button 
+                        onClick={selectAll}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
+                        title="סמן את כל המשתתפים כנוכחים"
+                    >
+                        <CheckSquare size={16} /> בחר הכל
+                    </button>
+                    <button 
+                        onClick={clearAll}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
+                        title="נקה את כל הסימונים"
+                    >
+                        <Square size={16} /> נקה
+                    </button>
                 </div>
             </div>
           </div>
@@ -247,9 +250,12 @@ export const SessionManager: React.FC = () => {
           <div className="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
              <div>
                 <h2 className="text-2xl font-bold text-slate-800">ציוד זמין</h2>
-                <span className="text-sm text-slate-500 mt-1 block">
-                    סה"כ כלי שיט: <span className="font-bold text-brand-600">{totalBoats}</span>
-                </span>
+                <div className="mt-1 flex items-center gap-2 text-sm text-slate-600">
+                    סה"כ כלי שיט:
+                    <span className="bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-bold">
+                        {totalBoats}
+                    </span>
+                </div>
              </div>
             <button 
               onClick={handleSaveDefault}

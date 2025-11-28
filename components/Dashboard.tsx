@@ -213,7 +213,7 @@ export const Dashboard: React.FC = () => {
                             className={`flex items-center justify-between p-3 cursor-pointer transition-colors ${isSelected ? 'bg-brand-50' : 'bg-white hover:bg-slate-50'}`}
                           >
                             <span className={`text-sm ${isSelected ? 'font-medium text-brand-700' : 'text-slate-700'}`}>
-                              {p.name}
+                              {p.name} <span className="text-xs text-slate-400">({RoleLabel[p.role]})</span>
                             </span>
                             <input
                               type="checkbox"
@@ -349,7 +349,9 @@ export const Dashboard: React.FC = () => {
                         <div className="border rounded-md max-h-32 overflow-y-auto bg-white divide-y divide-slate-100">
                             {people.map(p => (
                                 <label key={p.id} className="flex items-center justify-between p-2 hover:bg-slate-50 cursor-pointer">
-                                    <span className="text-sm text-slate-700">{p.name}</span>
+                                    <span className="text-sm text-slate-700">
+                                      {p.name} <span className="text-xs text-slate-400">({RoleLabel[p.role]})</span>
+                                    </span>
                                     <input 
                                         type="checkbox" 
                                         checked={newPreferredPartners.includes(p.id)}

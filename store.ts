@@ -26,6 +26,10 @@ interface AppState {
   session: SessionState;
   defaultInventory: BoatInventory;
   
+  // Undo/Redo History for Teams
+  history: Team[][];
+  future: Team[][];
+  
   // Actions
   login: (email: string, isAdmin: boolean) => void;
   logout: () => void;
@@ -38,9 +42,15 @@ interface AppState {
   updateDefaultInventory: (inventory: BoatInventory) => void;
   runPairing: () => void;
   resetSession: () => void;
+  
+  // Board Actions
   moveMemberToTeam: (personId: string, targetTeamId: string) => void;
   reorderSessionMembers: (sourceTeamId: string, sourceIndex: number, destTeamId: string, destIndex: number) => void;
   swapMembers: (teamAId: string, indexA: number, teamBId: string, indexB: number) => void;
+  
+  // History Actions
+  undo: () => void;
+  redo: () => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -52,6 +62,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     presentPersonIds: [],
     teams: [],
   },
+  history: [],
+  future: [],
 
   login: (email, isAdmin) => set({ user: { email, isAdmin } }),
   logout: () => set({ user: null }),
@@ -88,6 +100,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   runPairing: () => {
     const { people, session } = get();
+    // Save history before overwriting teams
+    set((state) => ({ history: [...state.history, state.session.teams], future: [] }));
+
     const presentPeople = people.filter(p => session.presentPersonIds.includes(p.id));
     const teams = generateSmartPairings(presentPeople, session.inventory);
     set((state) => ({
@@ -97,6 +112,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   resetSession: () => {
     const { defaultInventory } = get();
+    // Save history before reset
+    set((state) => ({ history: [...state.history, state.session.teams], future: [] }));
+    
     set((state) => ({
       session: {
         inventory: defaultInventory,
@@ -108,6 +126,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   moveMemberToTeam: (personId, targetTeamId) => {
     const { session, people } = get();
+    // Save history
+    set((state) => ({ history: [...state.history, state.session.teams], future: [] }));
+
     const person = people.find(p => p.id === personId);
     if (!person) return;
 
@@ -134,7 +155,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   reorderSessionMembers: (sourceTeamId, sourceIndex, destTeamId, destIndex) => {
     const { session } = get();
-    const newTeams = JSON.parse(JSON.stringify(session.teams)); // Deep copy for safety
+    // Save history
+    set((state) => ({ history: [...state.history, state.session.teams], future: [] }));
+
+    const newTeams = JSON.parse(JSON.stringify(session.teams)); // Deep copy
 
     const sourceTeam = newTeams.find((t: Team) => t.id === sourceTeamId);
     const destTeam = newTeams.find((t: Team) => t.id === destTeamId);
@@ -154,6 +178,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   swapMembers: (teamAId, indexA, teamBId, indexB) => {
     const { session } = get();
+    // Save history
+    set((state) => ({ history: [...state.history, state.session.teams], future: [] }));
+
     const newTeams = JSON.parse(JSON.stringify(session.teams));
 
     const teamA = newTeams.find((t: Team) => t.id === teamAId);
@@ -171,5 +198,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       session: { ...state.session, teams: newTeams }
     }));
+  },
+
+  undo: () => {
+    set((state) => {
+      if (state.history.length === 0) return {};
+      const previous = state.history[state.history.length - 1];
+      const newHistory = state.history.slice(0, -1);
+      return {
+        session: { ...state.session, teams: previous },
+        history: newHistory,
+        future: [state.session.teams, ...state.future]
+      };
+    });
+  },
+
+  redo: () => {
+    set((state) => {
+      if (state.future.length === 0) return {};
+      const next = state.future[0];
+      const newFuture = state.future.slice(1);
+      return {
+        session: { ...state.session, teams: next },
+        history: [...state.history, state.session.teams],
+        future: newFuture
+      };
+    });
   }
 }));
