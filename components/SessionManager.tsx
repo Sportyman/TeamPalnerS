@@ -58,6 +58,10 @@ export const SessionManager: React.FC = () => {
 
   const selectAll = () => {
     setBulkAttendance(people.map(p => p.id));
+    // Auto scroll to bottom
+    setTimeout(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
   };
 
   const clearAll = () => {

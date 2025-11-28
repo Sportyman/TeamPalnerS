@@ -67,14 +67,6 @@ export const PublicPairingView: React.FC = () => {
             >
                 <Printer size={18} /> הדפסה
             </button>
-
-            <Link 
-                to="/login"
-                className="flex items-center gap-2 text-slate-400 hover:text-brand-600 transition-colors text-sm"
-                title="כניסה למערכת (למנהלים)"
-            >
-                <LogIn size={16} /> כניסה למערכת
-            </Link>
         </div>
 
         {/* Header */}

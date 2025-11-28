@@ -4,6 +4,28 @@ import { Team, Role, RoleLabel, BoatTypeLabel, BoatType } from '../types';
 import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Dices, X } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
+// Pastel colors for boat cards
+const TEAM_COLORS = [
+  'bg-slate-50 border-slate-200',
+  'bg-red-50 border-red-200',
+  'bg-orange-50 border-orange-200',
+  'bg-amber-50 border-amber-200',
+  'bg-yellow-50 border-yellow-200',
+  'bg-lime-50 border-lime-200',
+  'bg-green-50 border-green-200',
+  'bg-emerald-50 border-emerald-200',
+  'bg-teal-50 border-teal-200',
+  'bg-cyan-50 border-cyan-200',
+  'bg-sky-50 border-sky-200',
+  'bg-blue-50 border-blue-200',
+  'bg-indigo-50 border-indigo-200',
+  'bg-violet-50 border-violet-200',
+  'bg-purple-50 border-purple-200',
+  'bg-fuchsia-50 border-fuchsia-200',
+  'bg-pink-50 border-pink-200',
+  'bg-rose-50 border-rose-200',
+];
+
 export const PairingBoard: React.FC = () => {
   const { session, reorderSessionMembers, swapMembers, undo, redo, history, future, updateTeamBoatType, runPairing } = useAppStore();
   const [showShareMenu, setShowShareMenu] = useState(false);
@@ -251,15 +273,18 @@ export const PairingBoard: React.FC = () => {
       <div className="print:hidden">
         <DragDropContext onDragEnd={onDragEnd}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {session.teams.map((team: Team) => (
+            {session.teams.map((team: Team, index: number) => {
+                const hasWarnings = team.warnings && team.warnings.length > 0;
+                const colorClass = TEAM_COLORS[index % TEAM_COLORS.length];
+                const containerClass = hasWarnings ? 'border-amber-300 bg-amber-50' : colorClass;
+                
+                return (
                 <div 
                 key={team.id}
-                className={`bg-white rounded-xl shadow-sm border-2 flex flex-col overflow-hidden ${
-                    team.warnings && team.warnings.length > 0 ? 'border-amber-300 bg-amber-50' : 'border-slate-100'
-                }`}
+                className={`rounded-xl shadow-sm border-2 flex flex-col overflow-hidden ${containerClass}`}
                 >
                 {/* Header with Boat Selector */}
-                <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <div className="p-3 border-b border-slate-100/50 bg-white/30 flex justify-between items-center">
                     <select
                         value={team.boatType}
                         onChange={(e) => updateTeamBoatType(team.id, e.target.value as BoatType)}
@@ -271,23 +296,23 @@ export const PairingBoard: React.FC = () => {
                         ))}
                     </select>
 
-                    {team.warnings && team.warnings.length > 0 && (
+                    {hasWarnings && (
                     <div className="cursor-help group relative">
                       <div className="text-amber-500">
                         <AlertTriangle size={20} />
                       </div>
                       {/* Tooltip for warnings */}
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-amber-100 text-amber-900 text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                         {team.warnings.join(', ')}
+                         {team.warnings?.join(', ')}
                       </div>
                     </div>
                     )}
                 </div>
 
                 {/* Warnings Text Banner */}
-                {team.warnings && team.warnings.length > 0 && (
+                {hasWarnings && (
                     <div className="px-3 py-1 bg-amber-100 text-amber-800 text-sm border-b border-amber-200">
-                    {team.warnings.join(', ')}
+                    {team.warnings?.join(', ')}
                     </div>
                 )}
 
@@ -298,7 +323,7 @@ export const PairingBoard: React.FC = () => {
                         ref={provided.innerRef}
                         {...provided.droppableProps}
                         className={`p-3 flex-1 flex flex-col gap-2 min-h-[140px] transition-colors duration-200 ${
-                        snapshot.isDraggingOver ? 'bg-blue-50/50' : ''
+                        snapshot.isDraggingOver ? 'bg-white/40' : ''
                         }`}
                     >
                         {team.members.map((member, index) => {
@@ -382,7 +407,7 @@ export const PairingBoard: React.FC = () => {
                         {provided.placeholder}
                         
                         {team.members.length === 0 && !snapshot.isDraggingOver && (
-                        <div className="flex-1 flex items-center justify-center text-slate-400 text-sm italic border-2 border-dashed border-slate-100 rounded-lg min-h-[60px]">
+                        <div className="flex-1 flex items-center justify-center text-slate-400 text-sm italic border-2 border-dashed border-slate-300/50 rounded-lg min-h-[60px]">
                             גרור לכאן
                         </div>
                         )}
@@ -390,7 +415,7 @@ export const PairingBoard: React.FC = () => {
                     )}
                 </Droppable>
                 </div>
-            ))}
+            )})}
             </div>
         </DragDropContext>
       </div>
