@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Person, Role, SessionState, Team, BoatInventory } from './types';
+import { Person, Role, SessionState, Team, BoatInventory, BoatType } from './types';
 import { generateSmartPairings } from './services/pairingLogic';
 
 // Mock Initial Data - Cleaned names for privacy
@@ -47,6 +47,7 @@ interface AppState {
   moveMemberToTeam: (personId: string, targetTeamId: string) => void;
   reorderSessionMembers: (sourceTeamId: string, sourceIndex: number, destTeamId: string, destIndex: number) => void;
   swapMembers: (teamAId: string, indexA: number, teamBId: string, indexB: number) => void;
+  updateTeamBoatType: (teamId: string, boatType: BoatType) => void;
   
   // History Actions
   undo: () => void;
@@ -194,6 +195,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Swap
     teamA.members[indexA] = memberB;
     teamB.members[indexB] = memberA;
+
+    set((state) => ({
+      session: { ...state.session, teams: newTeams }
+    }));
+  },
+
+  updateTeamBoatType: (teamId, boatType) => {
+    const { session } = get();
+    // Save history
+    set((state) => ({ history: [...state.history, state.session.teams], future: [] }));
+
+    const newTeams = session.teams.map(t => 
+      t.id === teamId ? { ...t, boatType } : t
+    );
 
     set((state) => ({
       session: { ...state.session, teams: newTeams }

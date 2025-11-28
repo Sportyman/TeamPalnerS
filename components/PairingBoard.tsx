@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
-import { Team, Role, RoleLabel, BoatTypeLabel } from '../types';
+import { Team, Role, RoleLabel, BoatTypeLabel, BoatType } from '../types';
 import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 export const PairingBoard: React.FC = () => {
-  const { session, reorderSessionMembers, swapMembers, undo, redo, history, future } = useAppStore();
+  const { session, reorderSessionMembers, swapMembers, undo, redo, history, future, updateTeamBoatType } = useAppStore();
   const [showShareMenu, setShowShareMenu] = useState(false);
   
   // Swap Mode State
@@ -60,8 +60,8 @@ export const PairingBoard: React.FC = () => {
     const jsonString = JSON.stringify(payload);
     const encoded = btoa(unescape(encodeURIComponent(jsonString)));
     
-    // 3. Create URL
-    const baseUrl = window.location.href.split('#')[0]; // Get base domain
+    // 3. Create URL - Robust hash handling
+    const baseUrl = window.location.href.split('#')[0]; 
     return `${baseUrl}#/share?data=${encoded}`;
   };
 
@@ -152,7 +152,7 @@ export const PairingBoard: React.FC = () => {
                   className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
                   title="פתח תצוגה נקייה בחלון חדש"
               >
-                  <Eye size={16} /> תצוגה
+                  <Eye size={16} /> מבט נקי
               </button>
 
                <button 
@@ -199,9 +199,19 @@ export const PairingBoard: React.FC = () => {
                     team.warnings && team.warnings.length > 0 ? 'border-amber-300 bg-amber-50' : 'border-slate-100'
                 }`}
                 >
-                {/* Header */}
+                {/* Header with Boat Selector */}
                 <div className="p-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                    <span className="font-bold text-slate-700 text-sm">{BoatTypeLabel[team.boatType]}</span>
+                    <select
+                        value={team.boatType}
+                        onChange={(e) => updateTeamBoatType(team.id, e.target.value as BoatType)}
+                        className="font-bold text-slate-700 text-sm bg-transparent border-none focus:ring-0 cursor-pointer outline-none hover:text-brand-600 transition-colors"
+                        title="שנה סוג סירה"
+                    >
+                        {Object.entries(BoatTypeLabel).map(([key, label]) => (
+                            <option key={key} value={key}>{label}</option>
+                        ))}
+                    </select>
+
                     {team.warnings && team.warnings.length > 0 && (
                     <div title={team.warnings.join(', ')} className="cursor-help">
                       <div>
@@ -329,9 +339,9 @@ export const PairingBoard: React.FC = () => {
             <p className="text-lg text-slate-600 mt-2">{new Date().toLocaleDateString('he-IL')}</p>
         </div>
 
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-6">
             {session.teams.map((team, idx) => (
-                <div key={team.id} className="border-b border-slate-300 pb-4 break-inside-avoid">
+                <div key={team.id} className="border-b border-slate-300 pb-2 break-inside-avoid page-break-inside-avoid">
                     <div className="flex items-baseline gap-4 mb-2">
                          <span className="text-xl font-bold">סירה {idx + 1}</span>
                          <span className="text-sm px-2 py-1 bg-slate-100 rounded border">{BoatTypeLabel[team.boatType]}</span>
@@ -346,7 +356,7 @@ export const PairingBoard: React.FC = () => {
             ))}
         </div>
         
-        <div className="mt-12 pt-8 border-t border-slate-400 text-center text-sm text-slate-500">
+        <div className="mt-8 pt-4 border-t border-slate-400 text-center text-sm text-slate-500">
             הופק באמצעות PaddleMate
         </div>
       </div>

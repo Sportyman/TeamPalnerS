@@ -22,7 +22,19 @@
         }
       }
     </script>
-  <script type="importmap">
+    <style>
+      @media print {
+        body, html, #root {
+          height: auto !important;
+          min-height: 0 !important;
+          overflow: visible !important;
+        }
+        .page-break-inside-avoid {
+          page-break-inside: avoid;
+        }
+      }
+    </style>
+<script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
