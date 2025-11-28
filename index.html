@@ -23,18 +23,40 @@
       }
     </script>
     <style>
+      /* iPhone Safe Area Variables */
+      :root {
+        --sat: env(safe-area-inset-top);
+        --sab: env(safe-area-inset-bottom);
+        --sal: env(safe-area-inset-left);
+        --sar: env(safe-area-inset-right);
+      }
+      
+      .safe-area-top {
+        padding-top: var(--sat);
+      }
+      
+      .safe-area-bottom {
+        padding-bottom: var(--sab);
+      }
+
+      /* Print Optimization */
       @media print {
         body, html, #root {
           height: auto !important;
           min-height: 0 !important;
           overflow: visible !important;
+          background: white !important;
         }
         .page-break-inside-avoid {
           page-break-inside: avoid;
         }
+        /* Hide URL headers/footers in generic browsers if possible */
+        @page {
+          margin: 1cm;
+        }
       }
     </style>
-<script type="importmap">
+  <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
@@ -52,6 +74,7 @@
 </head>
   <body class="bg-slate-50 overscroll-none">
     <div id="root"></div>
-    <script type="module" src="/src/index.tsx"></script>
+    <!-- FIXED: Pointing to root index.tsx instead of /src/index.tsx -->
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
