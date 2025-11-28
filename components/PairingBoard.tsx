@@ -315,7 +315,7 @@ export const PairingBoard: React.FC = () => {
                                 {...provided.draggableProps}
                                 className={`
                                     relative group
-                                    p-4 rounded-lg border flex items-center justify-between select-none
+                                    p-3 rounded-lg border flex items-center justify-between select-none
                                     transition-all duration-200
                                     ${snapshot.isDragging 
                                     ? 'shadow-2xl ring-2 ring-brand-500 ring-offset-2 z-50 bg-white opacity-95' 
@@ -328,6 +328,15 @@ export const PairingBoard: React.FC = () => {
                                 onClick={() => swapSource && handleSwapClick(team.id, index)}
                                 title={`רמה: ${member.rank}. גרור את הידית לשינוי סדר, או לחץ להחלפה.`}
                                 >
+
+                                {/* Grip Icon - MOVED TO START (RIGHT SIDE) & ENLARGED */}
+                                <div 
+                                    {...provided.dragHandleProps}
+                                    className="p-3 -mr-1 ml-1 text-slate-400 hover:text-brand-600 cursor-grab active:cursor-grabbing touch-none flex items-center justify-center rounded-md hover:bg-black/5"
+                                    title="גרור לשינוי סדר"
+                                >
+                                    <GripVertical size={30} />
+                                </div>
                                 
                                 <div className="flex-1 flex flex-col px-1">
                                     <span className="font-bold text-slate-900 text-lg">{member.name}</span>
@@ -344,14 +353,6 @@ export const PairingBoard: React.FC = () => {
                                           {member.notes}
                                        </div>
                                     )}
-                                </div>
-
-                                {/* Grip Icon - THIS IS THE HANDLE NOW */}
-                                <div 
-                                    {...provided.dragHandleProps}
-                                    className="p-3 text-slate-300 hover:text-brand-600 cursor-grab active:cursor-grabbing touch-none"
-                                >
-                                    <GripVertical size={24} />
                                 </div>
 
                                 {/* Swap Button */}
