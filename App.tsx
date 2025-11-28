@@ -5,7 +5,8 @@ import { Dashboard } from './components/Dashboard';
 import { SessionManager } from './components/SessionManager';
 import { Login } from './components/Login';
 import { PublicPairingView } from './components/PublicPairingView';
-import { Waves, LayoutDashboard, Calendar, LogOut, Menu, X } from 'lucide-react';
+import { Waves, LayoutDashboard, Calendar, LogOut, Menu, X, Info } from 'lucide-react';
+import { APP_VERSION } from './types';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const user = useAppStore((state) => state.user);
@@ -40,20 +41,17 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+          <div className="relative flex justify-between h-16 items-center">
+            
+            {/* Right Side (Start in RTL): Mobile Menu & Desktop Links */}
             <div className="flex items-center gap-2 md:gap-8">
               {/* Mobile Menu Button */}
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden p-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                className="md:hidden p-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none"
               >
                 {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
-
-              <Link to="/" className="flex items-center gap-2 text-brand-600 font-bold text-xl">
-                <Waves size={28} />
-                <span className="hidden xs:inline">PaddleMate</span>
-              </Link>
               
               {/* Desktop Nav */}
               <div className="hidden md:flex space-x-4 space-x-reverse">
@@ -61,12 +59,24 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <NavLink to="/manage" icon={<LayoutDashboard size={18} />} text="משתתפים" />
               </div>
             </div>
+
+            {/* Center: Logo (Absolute Positioned) */}
+            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+               <Link to="/" className="flex items-center gap-2 text-brand-600 font-bold text-xl">
+                <Waves size={28} />
+                <span className="hidden xs:inline">PaddleMate</span>
+              </Link>
+            </div>
             
+            {/* Left Side (End in RTL): User & Logout */}
             <div className="flex items-center gap-3">
-              <span className="text-xs md:text-sm text-slate-500 hidden sm:block">
-                {user?.email}
-              </span>
-              <button onClick={logout} className="text-slate-400 hover:text-red-500 p-2">
+              <div className="hidden sm:flex flex-col items-end">
+                  <span className="text-xs md:text-sm text-slate-500">
+                    {user?.email}
+                  </span>
+                  <span className="text-[10px] text-slate-300">v{APP_VERSION}</span>
+              </div>
+              <button onClick={logout} className="text-slate-400 hover:text-red-500 p-2" title="התנתק">
                 <LogOut size={20} />
               </button>
             </div>
@@ -75,7 +85,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         {/* Mobile Navigation Menu */}
         {isMenuOpen && (
-          <div className="md:hidden bg-white border-b border-slate-200">
+          <div className="md:hidden bg-white border-b border-slate-200 animate-in slide-in-from-top-5">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               <NavLink 
                 to="/" 
@@ -89,9 +99,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 text="ניהול משתתפים" 
                 onClick={() => setIsMenuOpen(false)}
               />
-              <div className="pt-2 border-t border-slate-100 mt-2">
-                 <div className="px-3 py-2 text-xs text-slate-400">
+              <div className="pt-2 border-t border-slate-100 mt-2 flex justify-between items-center px-3 py-2">
+                 <div className="text-xs text-slate-400">
                     מחובר כ: {user?.email}
+                 </div>
+                 <div className="text-xs text-slate-300 font-mono">
+                    Ver: {APP_VERSION}
                  </div>
               </div>
             </div>

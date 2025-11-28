@@ -329,13 +329,14 @@ export const PairingBoard: React.FC = () => {
                                 title={`רמה: ${member.rank}. גרור את הידית לשינוי סדר, או לחץ להחלפה.`}
                                 >
 
-                                {/* Grip Icon - MOVED TO START (RIGHT SIDE) & ENLARGED */}
+                                {/* Grip Icon - ENLARGED & EXPLICIT TOUCH ACTION */}
                                 <div 
                                     {...provided.dragHandleProps}
-                                    className="p-3 -mr-1 ml-1 text-slate-400 hover:text-brand-600 cursor-grab active:cursor-grabbing touch-none flex items-center justify-center rounded-md hover:bg-black/5"
+                                    style={{ touchAction: 'none' }}
+                                    className="p-4 -mr-2 ml-2 text-slate-400 hover:text-brand-600 bg-slate-100/50 hover:bg-slate-200/50 rounded-md cursor-grab active:cursor-grabbing flex items-center justify-center shrink-0"
                                     title="גרור לשינוי סדר"
                                 >
-                                    <GripVertical size={30} />
+                                    <GripVertical size={24} />
                                 </div>
                                 
                                 <div className="flex-1 flex flex-col px-1">

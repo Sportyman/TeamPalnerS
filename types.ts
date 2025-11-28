@@ -22,6 +22,8 @@ export const BoatTypeLabel: Record<BoatType, string> = {
   [BoatType.PRIVATE]: 'סירה פרטית',
 };
 
+export const APP_VERSION = '1.0.2';
+
 // High contrast palette (Alternating Warm/Cool/Neutral) for better visual distinction
 export const TEAM_COLORS = [
   'bg-blue-50 border-blue-200',      // Cool (Blue)
