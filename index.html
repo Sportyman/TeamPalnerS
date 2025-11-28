@@ -50,7 +50,6 @@
         .page-break-inside-avoid {
           page-break-inside: avoid;
         }
-        /* Hide URL headers/footers in generic browsers if possible */
         @page {
           margin: 1cm;
         }
@@ -74,7 +73,7 @@
 </head>
   <body class="bg-slate-50 overscroll-none">
     <div id="root"></div>
-    <!-- FIXED: Pointing to root index.tsx instead of /src/index.tsx -->
-    <script type="module" src="/index.tsx"></script>
+    <!-- FIXED: Pointing to root index.tsx using relative path to ensure correct resolution -->
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>
