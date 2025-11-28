@@ -60,6 +60,11 @@ export const SessionManager: React.FC = () => {
     setBulkAttendance([]);
   };
 
+  // Calculate stats for step 1
+  const presentVolunteers = people.filter(p => session.presentPersonIds.includes(p.id) && p.role === Role.VOLUNTEER).length;
+  const presentMembers = people.filter(p => session.presentPersonIds.includes(p.id) && p.role === Role.MEMBER).length;
+  const presentGuests = people.filter(p => session.presentPersonIds.includes(p.id) && p.role === Role.GUEST).length;
+
   const getCardStyle = (role: Role, isPresent: boolean) => {
       const baseStyle = "flex items-center justify-between p-4 rounded-lg border text-right transition-all duration-200";
       
@@ -200,14 +205,30 @@ export const SessionManager: React.FC = () => {
             })}
           </div>
           
-          <div className="mt-8 flex justify-between items-center border-t border-slate-100 pt-4">
-            <div className="text-sm text-slate-500">
-              סה"כ נבחרו: <span className="font-bold text-slate-900">{session.presentPersonIds.length}</span>
+          <div className="mt-8 pt-4 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex flex-col gap-2 w-full md:w-auto">
+                <div className="text-sm text-slate-500">
+                סה"כ נבחרו: <span className="font-bold text-slate-900">{session.presentPersonIds.length}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs md:text-sm">
+                    <span className="text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-100 font-medium">
+                        מתנדבים: {presentVolunteers}
+                    </span>
+                    <span className="text-sky-700 bg-sky-50 px-2 py-1 rounded border border-sky-100 font-medium">
+                        חברים: {presentMembers}
+                    </span>
+                    {presentGuests > 0 && (
+                        <span className="text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 font-medium">
+                            אורחים: {presentGuests}
+                        </span>
+                    )}
+                </div>
             </div>
+
             <button
               onClick={() => setStep(2)}
               disabled={session.presentPersonIds.length === 0}
-              className="bg-brand-600 disabled:opacity-50 hover:bg-brand-500 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-lg shadow-brand-500/20"
+              className="w-full md:w-auto bg-brand-600 disabled:opacity-50 hover:bg-brand-500 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
               title="עבור לשלב הגדרת הציוד"
             >
               הבא: ציוד <ArrowLeft size={16} />
