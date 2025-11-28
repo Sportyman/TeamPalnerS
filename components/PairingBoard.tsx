@@ -1,30 +1,8 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
-import { Team, Role, RoleLabel, BoatTypeLabel, BoatType } from '../types';
+import { Team, Role, RoleLabel, BoatTypeLabel, BoatType, TEAM_COLORS } from '../types';
 import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Dices, X } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-
-// High contrast palette (Alternating Warm/Cool/Neutral) for better visual distinction
-const TEAM_COLORS = [
-  'bg-blue-50 border-blue-200',      // Cool
-  'bg-orange-50 border-orange-200',  // Warm
-  'bg-purple-50 border-purple-200',  // Cool
-  'bg-yellow-50 border-yellow-200',  // Warm (Bright)
-  'bg-teal-50 border-teal-200',      // Cool
-  'bg-red-50 border-red-200',        // Warm (Alert)
-  'bg-indigo-50 border-indigo-200',  // Cool
-  'bg-amber-50 border-amber-200',    // Warm
-  'bg-cyan-50 border-cyan-200',      // Cool
-  'bg-rose-50 border-rose-200',      // Warm
-  'bg-emerald-50 border-emerald-200',// Cool
-  'bg-fuchsia-50 border-fuchsia-200',// Warm
-  'bg-slate-50 border-slate-200',    // Neutral
-  'bg-lime-50 border-lime-200',      // Warm (Greenish)
-  'bg-violet-50 border-violet-200',  // Cool
-  'bg-pink-50 border-pink-200',      // Warm
-  'bg-sky-50 border-sky-200',        // Cool
-  'bg-green-50 border-green-200',    // Nature
-];
 
 export const PairingBoard: React.FC = () => {
   const { session, reorderSessionMembers, swapMembers, undo, redo, history, future, updateTeamBoatType, runPairing } = useAppStore();

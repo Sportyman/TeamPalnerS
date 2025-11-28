@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Person, Role, SessionState, Team, BoatInventory, BoatType } from './types';
 import { generateSmartPairings } from './services/pairingLogic';
 
@@ -246,6 +246,23 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'paddlemate-storage',
+      version: 1.1, // Bumped version to force updates if needed
+      migrate: (persistedState: any, version: number) => {
+        // If version changed, keep people and user but reset session to clean state
+        if (version !== 1.1) {
+          return {
+            ...persistedState,
+            session: {
+               inventory: DEFAULT_INVENTORY_VALUES,
+               presentPersonIds: [],
+               teams: []
+            },
+            history: [],
+            future: []
+          } as AppState;
+        }
+        return persistedState as AppState;
+      },
       partialize: (state) => ({
         user: state.user,
         people: state.people,

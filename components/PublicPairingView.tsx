@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { BoatTypeLabel, RoleLabel, Role } from '../types';
+import { BoatTypeLabel, RoleLabel, Role, TEAM_COLORS } from '../types';
 import { Ship, Calendar, AlertCircle, Printer, LogIn } from 'lucide-react';
 
 interface PublicMember {
@@ -83,39 +83,42 @@ export const PublicPairingView: React.FC = () => {
 
         {/* List */}
         <div className="space-y-4">
-          {teams.map((team, idx) => (
-            <div key={team.id || idx} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden break-inside-avoid print:shadow-none print:border-slate-300">
-              <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center print:bg-white print:border-slate-300">
-                <span className="font-bold text-slate-700 text-lg">סירה {idx + 1}</span>
-                <span className="text-xs bg-white border border-slate-200 px-2 py-1 rounded text-slate-600 print:border-slate-400">
-                  {BoatTypeLabel[team.boatType as keyof typeof BoatTypeLabel]}
-                </span>
-              </div>
-              
-              <div className="p-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  {team.members.map((member, mIdx) => (
-                    <div key={mIdx} className="flex-1 flex items-center gap-3 p-3 rounded-lg bg-slate-50/50 border border-slate-100 print:bg-white print:border-slate-200">
-                      <div className={`w-3 h-3 rounded-full print:print-color-adjust-exact ${
-                        member.role === Role.VOLUNTEER ? 'bg-orange-400' : 
-                        member.role === Role.GUEST ? 'bg-emerald-400' : 'bg-sky-400'
-                      }`} />
-                      <span className="font-medium text-slate-800 text-xl">
-                        {member.name}
-                      </span>
-                      {/* Removed print:hidden so role is visible in print/public view */}
-                      <span className="text-xs text-slate-400 mr-auto">
-                        {RoleLabel[member.role]}
-                      </span>
-                    </div>
-                  ))}
-                  {team.members.length === 0 && (
-                     <div className="text-slate-400 text-sm italic p-2">סירה ריקה</div>
-                  )}
+          {teams.map((team, idx) => {
+            const colorClass = TEAM_COLORS[idx % TEAM_COLORS.length];
+            return (
+              <div key={team.id || idx} className={`rounded-xl shadow-sm border-2 overflow-hidden break-inside-avoid print:shadow-none print:border-slate-300 ${colorClass}`}>
+                <div className="bg-white/30 px-4 py-3 border-b border-slate-100/50 flex justify-between items-center print:bg-white print:border-slate-300">
+                  <span className="font-bold text-slate-800 text-lg">סירה {idx + 1}</span>
+                  <span className="text-xs bg-white/60 border border-slate-200/50 px-2 py-1 rounded text-slate-700 font-medium print:border-slate-400">
+                    {BoatTypeLabel[team.boatType as keyof typeof BoatTypeLabel]}
+                  </span>
+                </div>
+                
+                <div className="p-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {team.members.map((member, mIdx) => (
+                      <div key={mIdx} className="flex-1 flex items-center gap-3 p-3 rounded-lg bg-white/60 border border-white/50 print:bg-white print:border-slate-200 shadow-sm">
+                        <div className={`w-3 h-3 rounded-full print:print-color-adjust-exact ${
+                          member.role === Role.VOLUNTEER ? 'bg-orange-400' : 
+                          member.role === Role.GUEST ? 'bg-emerald-400' : 'bg-sky-400'
+                        }`} />
+                        <span className="font-bold text-slate-900 text-xl">
+                          {member.name}
+                        </span>
+                        {/* Removed print:hidden so role is visible in print/public view */}
+                        <span className="text-xs text-slate-500 mr-auto font-medium">
+                          {RoleLabel[member.role]}
+                        </span>
+                      </div>
+                    ))}
+                    {team.members.length === 0 && (
+                       <div className="text-slate-400 text-sm italic p-2">סירה ריקה</div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="text-center text-xs text-slate-400 pt-8 print:hidden">
