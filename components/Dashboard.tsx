@@ -78,12 +78,12 @@ export const Dashboard: React.FC = () => {
       
       {/* Edit Modal - Full Screen on Mobile, Centered on Desktop */}
       {editingPerson && (
-        <div className="fixed inset-0 z-50 flex md:items-center md:justify-center md:bg-black/50">
+        <div className="fixed inset-0 z-50 flex md:items-center md:justify-center md:bg-black/50 bg-white md:bg-transparent">
           <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:w-full md:max-w-lg md:rounded-xl shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200">
             {/* Header - Fixed at top */}
-            <div className="bg-brand-50 p-4 border-b border-brand-100 flex justify-between items-center shrink-0">
+            <div className="bg-brand-50 p-4 border-b border-brand-100 flex justify-between items-center shrink-0 safe-area-top">
               <h3 className="font-bold text-lg text-brand-800">עריכת משתתף</h3>
-              <button onClick={() => setEditingPerson(null)} className="text-slate-500 hover:text-slate-800" title="סגור חלון">
+              <button onClick={() => setEditingPerson(null)} className="text-slate-500 hover:text-slate-800 p-2" title="סגור חלון">
                 <X size={24} />
               </button>
             </div>
