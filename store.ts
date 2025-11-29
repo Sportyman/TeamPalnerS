@@ -1,38 +1,39 @@
+
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Person, Role, SessionState, Team, BoatInventory, BoatType, ClubID, UserPermission } from './types';
+import { Person, Role, SessionState, Team, BoatInventory, BoatType, ClubID, UserPermission, Gender } from './types';
 import { generateSmartPairings } from './services/pairingLogic';
 
 export const SUPER_ADMIN_EMAIL = 'shaykashay@gmail.com';
 
 // --- MOCK DATA FOR KAYAK CLUB ---
 const MOCK_KAYAK_PEOPLE: Partial<Person>[] = [
-  { id: 'k1', name: 'דורון שמעוני', role: Role.VOLUNTEER, rank: 5, notes: 'מדריך ראשי' },
-  { id: 'k2', name: 'ענת לביא', role: Role.VOLUNTEER, rank: 4 },
-  { id: 'k3', name: 'אורן בר', role: Role.VOLUNTEER, rank: 3 },
-  { id: 'k4', name: 'יעל גולן', role: Role.VOLUNTEER, rank: 5, notes: 'יכולה לחתור בקיאק יחיד' },
-  { id: 'k5', name: 'רוני ספקטור', role: Role.VOLUNTEER, rank: 4 },
-  { id: 'k6', name: 'דניאל אברהמי', role: Role.MEMBER, rank: 1, notes: 'צריך תמיכה בגב' },
-  { id: 'k7', name: 'שירה כהן', role: Role.MEMBER, rank: 2 },
-  { id: 'k8', name: 'איתי לוי', role: Role.MEMBER, rank: 3 },
-  { id: 'k9', name: 'נועם פרי', role: Role.GUEST, rank: 1, notes: 'פעם ראשונה בחוג' },
-  { id: 'k10', name: 'מאיה שדה', role: Role.MEMBER, rank: 4 },
-  { id: 'k11', name: 'יונתן הראל', role: Role.MEMBER, rank: 2 },
-  { id: 'k12', name: 'אביבית צור', role: Role.MEMBER, rank: 1 },
+  { id: 'k1', name: 'דורון שמעוני', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 5, notes: 'מדריך ראשי' },
+  { id: 'k2', name: 'ענת לביא', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 4 },
+  { id: 'k3', name: 'אורן בר', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 3 },
+  { id: 'k4', name: 'יעל גולן', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 5, notes: 'יכולה לחתור בקיאק יחיד' },
+  { id: 'k5', name: 'רוני ספקטור', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 4 },
+  { id: 'k6', name: 'דניאל אברהמי', gender: Gender.MALE, role: Role.MEMBER, rank: 1, notes: 'צריך תמיכה בגב' },
+  { id: 'k7', name: 'שירה כהן', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2 },
+  { id: 'k8', name: 'איתי לוי', gender: Gender.MALE, role: Role.MEMBER, rank: 3 },
+  { id: 'k9', name: 'נועם פרי', gender: Gender.MALE, role: Role.GUEST, rank: 1, notes: 'פעם ראשונה בחוג' },
+  { id: 'k10', name: 'מאיה שדה', gender: Gender.FEMALE, role: Role.MEMBER, rank: 4 },
+  { id: 'k11', name: 'יונתן הראל', gender: Gender.MALE, role: Role.MEMBER, rank: 2 },
+  { id: 'k12', name: 'אביבית צור', gender: Gender.FEMALE, role: Role.MEMBER, rank: 1 },
 ];
 
 // --- MOCK DATA FOR SAILING CLUB ---
 const MOCK_SAILING_PEOPLE: Partial<Person>[] = [
-  { id: 's1', name: 'גיורא איילנד', role: Role.VOLUNTEER, rank: 5, notes: 'סקיפר מנוסה' },
-  { id: 's2', name: 'תמר זיו', role: Role.VOLUNTEER, rank: 4 },
-  { id: 's3', name: 'אמיר גלבוע', role: Role.VOLUNTEER, rank: 3 },
-  { id: 's4', name: 'רמי קליין', role: Role.VOLUNTEER, rank: 5 },
-  { id: 's5', name: 'נורית פלד', role: Role.MEMBER, rank: 2, notes: 'חוששת ממים עמוקים' },
-  { id: 's6', name: 'יוסי בניון', role: Role.MEMBER, rank: 3 },
-  { id: 's7', name: 'גילה אלמגור', role: Role.MEMBER, rank: 1, notes: 'להושיב במקום יציב' },
-  { id: 's8', name: 'ארז טל', role: Role.GUEST, rank: 1 },
-  { id: 's9', name: 'מירי מסיקה', role: Role.MEMBER, rank: 2 },
-  { id: 's10', name: 'שלמה ארצי', role: Role.MEMBER, rank: 4 },
+  { id: 's1', name: 'גיורא איילנד', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 5, notes: 'סקיפר מנוסה' },
+  { id: 's2', name: 'תמר זיו', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 4 },
+  { id: 's3', name: 'אמיר גלבוע', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 3 },
+  { id: 's4', name: 'רמי קליין', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 5 },
+  { id: 's5', name: 'נורית פלד', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2, notes: 'חוששת ממים עמוקים' },
+  { id: 's6', name: 'יוסי בניון', gender: Gender.MALE, role: Role.MEMBER, rank: 3 },
+  { id: 's7', name: 'גילה אלמגור', gender: Gender.FEMALE, role: Role.MEMBER, rank: 1, notes: 'להושיב במקום יציב' },
+  { id: 's8', name: 'ארז טל', gender: Gender.MALE, role: Role.GUEST, rank: 1 },
+  { id: 's9', name: 'מירי מסיקה', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2 },
+  { id: 's10', name: 'שלמה ארצי', gender: Gender.MALE, role: Role.MEMBER, rank: 4 },
 ];
 
 const DEFAULT_INVENTORY_VALUES: BoatInventory = {
@@ -69,6 +70,7 @@ interface AppState {
   addPerson: (person: Omit<Person, 'clubId'>) => void;
   updatePerson: (person: Person) => void;
   removePerson: (id: string) => void;
+  restoreDemoData: () => void; // Manually restore mock data
   
   toggleAttendance: (id: string) => void;
   setBulkAttendance: (ids: string[]) => void;
@@ -186,6 +188,16 @@ export const useAppStore = create<AppState>()(
         people: state.people.filter(p => p.id !== id) 
       })),
 
+      restoreDemoData: () => set((state) => {
+        const kayakPeople = MOCK_KAYAK_PEOPLE.map(p => ({ ...p, clubId: ClubID.KAYAK } as Person));
+        const sailingPeople = MOCK_SAILING_PEOPLE.map(p => ({ ...p, clubId: ClubID.SAILING } as Person));
+        
+        // Combine keeping existing non-mock people if we wanted, but for restore we just wipe and set mock
+        const allPeople = [...kayakPeople, ...sailingPeople];
+        
+        return { people: allPeople };
+      }),
+
       toggleAttendance: (id) => set((state) => {
         const { activeClub } = state;
         if (!activeClub) return state;
@@ -229,6 +241,10 @@ export const useAppStore = create<AppState>()(
       updateDefaultInventory: (inventory) => set((state) => {
         const { activeClub } = state;
         if (!activeClub) return state;
+        
+        // Also update current session to match default if needed, 
+        // but typically we just update the default for future resets.
+        // Let's just update the default store.
         return {
           defaultInventories: {
             ...state.defaultInventories,
@@ -339,6 +355,7 @@ export const useAppStore = create<AppState>()(
             name: name,
             role: Role.GUEST,
             rank: 1,
+            gender: Gender.MALE, // Default for quick guest, editable later
             notes: 'הוסף ידנית'
         };
 
@@ -545,34 +562,28 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'etgarim-storage',
-      version: 4.0, // Major version bump to 4.0 to force reload of NEW mock data
+      version: 5.2, // Bumped to 5.2 to force data reload with gender
       migrate: (persistedState: any, version: number) => {
-        // If version is older than 4.0, re-initialize people with new mock data
-        if (version < 4.0) {
-            
-            // Map mock data to full Person objects
+        if (version < 5.2) {
+            // Force re-population of people on version update to include gender
             const kayakPeople = MOCK_KAYAK_PEOPLE.map(p => ({ ...p, clubId: ClubID.KAYAK } as Person));
             const sailingPeople = MOCK_SAILING_PEOPLE.map(p => ({ ...p, clubId: ClubID.SAILING } as Person));
-            
             const allPeople = [...kayakPeople, ...sailingPeople];
 
             return {
                 ...persistedState,
                 people: allPeople,
-                activeClub: null, // Reset active club to force selection
-                user: null, // Force re-login
-                // Initialize containers
-                permissions: persistedState.permissions || [],
-                sessions: {
+                // Ensure maps exist
+                sessions: persistedState.sessions || {
                     [ClubID.KAYAK]: { inventory: DEFAULT_INVENTORY_VALUES, presentPersonIds: [], teams: [] },
                     [ClubID.SAILING]: { inventory: DEFAULT_INVENTORY_VALUES, presentPersonIds: [], teams: [] },
                 },
-                defaultInventories: {
+                defaultInventories: persistedState.defaultInventories || {
                     [ClubID.KAYAK]: DEFAULT_INVENTORY_VALUES,
                     [ClubID.SAILING]: DEFAULT_INVENTORY_VALUES,
                 },
-                histories: { [ClubID.KAYAK]: [], [ClubID.SAILING]: [] },
-                futures: { [ClubID.KAYAK]: [], [ClubID.SAILING]: [] }
+                histories: persistedState.histories || { [ClubID.KAYAK]: [], [ClubID.SAILING]: [] },
+                futures: persistedState.futures || { [ClubID.KAYAK]: [], [ClubID.SAILING]: [] }
             } as AppState;
         }
         return persistedState as AppState;

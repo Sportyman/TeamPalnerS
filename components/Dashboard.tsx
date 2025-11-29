@@ -1,14 +1,28 @@
+
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
-import { Role, RoleLabel, Person, BoatType, BoatTypeLabel, ClubLabel } from '../types';
-import { Trash2, UserPlus, Star, Edit, X, Save, ChevronDown, ChevronUp, Plus, Users, Phone } from 'lucide-react';
+import { Role, RoleLabel, Person, BoatType, BoatTypeLabel, ClubLabel, Gender, GenderLabel, BoatInventory } from '../types';
+import { Trash2, UserPlus, Star, Edit, X, Save, ChevronDown, ChevronUp, Plus, Phone, Database, Settings, User } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-  const { people, activeClub, addPerson, updatePerson, removePerson } = useAppStore();
+  const { 
+      people, 
+      activeClub, 
+      addPerson, 
+      updatePerson, 
+      removePerson, 
+      restoreDemoData,
+      defaultInventories,
+      updateDefaultInventory
+    } = useAppStore();
   
-  // Add State
+  // Tab State
+  const [activeTab, setActiveTab] = useState<'people' | 'settings'>('people');
+
+  // Add Person State
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newGender, setNewGender] = useState<Gender>(Gender.MALE);
   const [newPhone, setNewPhone] = useState('');
   const [newRole, setNewRole] = useState<Role>(Role.VOLUNTEER);
   const [newRank, setNewRank] = useState(3);
@@ -16,11 +30,22 @@ export const Dashboard: React.FC = () => {
   const [newPreferredBoat, setNewPreferredBoat] = useState<BoatType | ''>('');
   const [newPreferredPartners, setNewPreferredPartners] = useState<string[]>([]);
 
+  // Inventory Edit State
+  const currentDefaults = activeClub ? defaultInventories[activeClub] : { doubles: 0, singles: 0, privates: 0 };
+  const [tempInventory, setTempInventory] = useState<BoatInventory>(currentDefaults);
+
   // Edit Modal State
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
 
   // Filter People by Active Club
   const clubPeople = people.filter(p => p.clubId === activeClub);
+
+  // Sync temp inventory when club changes
+  React.useEffect(() => {
+    if (activeClub) {
+        setTempInventory(defaultInventories[activeClub]);
+    }
+  }, [activeClub, defaultInventories]);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +55,7 @@ export const Dashboard: React.FC = () => {
     addPerson({
       id: Date.now().toString(),
       name: newName,
+      gender: newGender,
       phone: newPhone,
       role: newRole,
       rank: newRank,
@@ -40,6 +66,7 @@ export const Dashboard: React.FC = () => {
     
     // Reset form
     setNewName('');
+    setNewGender(Gender.MALE);
     setNewPhone('');
     setNewNotes('');
     setNewPreferredBoat('');
@@ -55,6 +82,11 @@ export const Dashboard: React.FC = () => {
       updatePerson(editingPerson);
       setEditingPerson(null);
     }
+  };
+
+  const saveInventory = () => {
+    updateDefaultInventory(tempInventory);
+    alert('הגדרות הציוד נשמרו בהצלחה!');
   };
 
   // Toggle helpers for Edit Mode
@@ -111,15 +143,99 @@ export const Dashboard: React.FC = () => {
     <div className="space-y-6 pb-20">
       
       {/* Header Info */}
-      <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-slate-800">
-             רשימת משתתפים: {activeClub ? ClubLabel[activeClub] : ''}
-          </h2>
-          <span className="text-sm bg-slate-100 px-3 py-1 rounded-full text-slate-600">
-             {clubPeople.length} רשומים
-          </span>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">
+                ניהול חוג: {activeClub ? ClubLabel[activeClub] : ''}
+            </h2>
+            <div className="flex items-center gap-2 mt-1">
+                 {clubPeople.length === 0 && (
+                    <button 
+                        onClick={() => { if(confirm('האם לשחזר נתוני דמו? זה ימחק שינויים מקומיים.')) restoreDemoData(); }}
+                        className="text-xs bg-brand-50 text-brand-600 hover:bg-brand-100 px-3 py-1 rounded-full flex items-center gap-1 transition-colors"
+                    >
+                        <Database size={12} /> טען נתוני דמו
+                    </button>
+                )}
+            </div>
+          </div>
+          
+          {/* Tabs */}
+          <div className="flex bg-slate-100 p-1 rounded-lg">
+              <button 
+                onClick={() => setActiveTab('people')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'people' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                  <div className="flex items-center gap-2"><User size={16}/> משתתפים</div>
+              </button>
+              <button 
+                onClick={() => setActiveTab('settings')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'settings' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                  <div className="flex items-center gap-2"><Settings size={16}/> הגדרות וציוד</div>
+              </button>
+          </div>
       </div>
 
+      {activeTab === 'settings' && (
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 animate-in fade-in max-w-2xl">
+              <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">מלאי ציוד ברירת מחדל</h3>
+              <p className="text-sm text-slate-500 mb-6">
+                  כאן ניתן להגדיר את כמויות הציוד הקבועות של המועדון. כמויות אלו יטענו אוטומטית בכל אימון חדש.
+              </p>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-slate-700">קיאק זוגי (2 מושבים)</span>
+                    <span className="text-brand-600 font-bold text-xl">{tempInventory.doubles}</span>
+                  </label>
+                  <input 
+                    type="range" min="0" max="20" 
+                    value={tempInventory.doubles}
+                    onChange={(e) => setTempInventory({ ...tempInventory, doubles: Number(e.target.value) })}
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-slate-700">קיאק יחיד (מושב 1)</span>
+                    <span className="text-brand-600 font-bold text-xl">{tempInventory.singles}</span>
+                  </label>
+                  <input 
+                    type="range" min="0" max="20" 
+                    value={tempInventory.singles}
+                    onChange={(e) => setTempInventory({ ...tempInventory, singles: Number(e.target.value) })}
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-slate-700">סירות פרטיות (בעלים)</span>
+                    <span className="text-brand-600 font-bold text-xl">{tempInventory.privates}</span>
+                  </label>
+                  <input 
+                    type="range" min="0" max="10" 
+                    value={tempInventory.privates}
+                    onChange={(e) => setTempInventory({ ...tempInventory, privates: Number(e.target.value) })}
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-8 pt-4 border-t flex justify-end">
+                  <button 
+                    onClick={saveInventory}
+                    className="bg-brand-600 hover:bg-brand-500 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2"
+                  >
+                      <Save size={18} /> שמור הגדרות
+                  </button>
+              </div>
+          </div>
+      )}
+
+      {activeTab === 'people' && (
+      <>
       {/* Edit Modal */}
       {editingPerson && (
         <div className="fixed inset-0 z-50 flex md:items-center md:justify-center md:bg-black/50 bg-white md:bg-transparent">
@@ -147,7 +263,19 @@ export const Dashboard: React.FC = () => {
                   />
                 </div>
 
-                <div className="col-span-2">
+                <div>
+                   <label className="block text-sm font-medium text-slate-700 mb-1">מין</label>
+                   <select
+                        value={editingPerson.gender}
+                        onChange={(e) => setEditingPerson({ ...editingPerson, gender: e.target.value as Gender })}
+                        className="w-full px-3 py-3 md:py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-base bg-white"
+                   >
+                       <option value={Gender.MALE}>{GenderLabel[Gender.MALE]}</option>
+                       <option value={Gender.FEMALE}>{GenderLabel[Gender.FEMALE]}</option>
+                   </select>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">טלפון</label>
                   <input
                     type="tel"
@@ -302,16 +430,30 @@ export const Dashboard: React.FC = () => {
             <form onSubmit={handleAdd} className="space-y-4">
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">שם מלא</label>
-                    <input
-                      type="text"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
-                      required
-                    />
+                  <div className="col-span-1 md:col-span-2 grid grid-cols-3 gap-4">
+                    <div className="col-span-2">
+                        <label className="block text-sm font-medium text-slate-600 mb-1">שם מלא</label>
+                        <input
+                        type="text"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
+                        required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-600 mb-1">מין</label>
+                        <select
+                            value={newGender}
+                            onChange={(e) => setNewGender(e.target.value as Gender)}
+                            className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
+                        >
+                            <option value={Gender.MALE}>{GenderLabel[Gender.MALE]}</option>
+                            <option value={Gender.FEMALE}>{GenderLabel[Gender.FEMALE]}</option>
+                        </select>
+                    </div>
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-1">טלפון</label>
                     <input
@@ -436,6 +578,7 @@ export const Dashboard: React.FC = () => {
              </div>
 
              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                 <span className="bg-white/50 px-1.5 rounded">{GenderLabel[person.gender || Gender.MALE]}</span>
                 <div className="flex items-center gap-0.5">
                    {Array.from({ length: person.rank }).map((_, i) => (
                       <Star key={i} size={12} className={`fill-current ${getRankColor(person.rank)}`} />
@@ -458,7 +601,8 @@ export const Dashboard: React.FC = () => {
         ))}
         {clubPeople.length === 0 && (
            <div className="text-center py-10 text-slate-400">
-             לא נמצאו משתתפים. הוסף חדש באמצעות הטופס למעלה.
+             לא נמצאו משתתפים.
+             <button onClick={() => restoreDemoData()} className="block mx-auto mt-2 text-brand-600 underline">טען נתונים לדוגמה</button>
            </div>
         )}
       </div>
@@ -469,6 +613,7 @@ export const Dashboard: React.FC = () => {
           <thead className="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider">
             <tr>
               <th className="px-6 py-3">שם</th>
+              <th className="px-6 py-3">מין</th>
               <th className="px-6 py-3">תפקיד</th>
               <th className="px-6 py-3">טלפון</th>
               <th className="px-6 py-3">דירוג</th>
@@ -482,6 +627,9 @@ export const Dashboard: React.FC = () => {
                 <td className="px-6 py-4 font-medium text-slate-800">
                   {person.name}
                   {person.notes && <div className="text-xs text-slate-400 mt-1">{person.notes}</div>}
+                </td>
+                <td className="px-6 py-4 text-sm text-slate-600">
+                    {GenderLabel[person.gender || Gender.MALE]}
                 </td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getRoleBadgeStyle(person.role)}`}>
@@ -524,14 +672,17 @@ export const Dashboard: React.FC = () => {
             ))}
             {clubPeople.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
+                <td colSpan={7} className="px-6 py-8 text-center text-slate-400">
                   לא נמצאו משתתפים בחוג זה.
+                  <button onClick={() => restoreDemoData()} className="block mx-auto mt-2 text-brand-600 underline">טען נתונים לדוגמה</button>
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+      </>
+      )}
     </div>
   );
 };

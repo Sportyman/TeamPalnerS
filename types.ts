@@ -1,3 +1,4 @@
+
 export enum Role {
   VOLUNTEER = 'VOLUNTEER',
   MEMBER = 'MEMBER',
@@ -8,6 +9,16 @@ export const RoleLabel: Record<Role, string> = {
   [Role.VOLUNTEER]: 'מתנדב',
   [Role.MEMBER]: 'חבר',
   [Role.GUEST]: 'אורח',
+};
+
+export enum Gender {
+  MALE = 'MALE',
+  FEMALE = 'FEMALE',
+}
+
+export const GenderLabel: Record<Gender, string> = {
+  [Gender.MALE]: 'זכר',
+  [Gender.FEMALE]: 'נקבה',
 };
 
 export enum BoatType {
@@ -38,7 +49,7 @@ export interface UserPermission {
   allowedClubs: ClubID[];
 }
 
-export const APP_VERSION = '2.0.1'; // Patch version bump to force deployment
+export const APP_VERSION = '2.1.0'; // Minor version bump for new features
 
 // High contrast palette
 export const TEAM_COLORS = [
@@ -72,6 +83,7 @@ export interface Person {
   id: string;
   clubId: ClubID; // Association to specific club
   name: string;
+  gender: Gender; // Added Gender
   phone?: string;
   role: Role;
   rank: number; // 1 (Novice) to 5 (Expert)
