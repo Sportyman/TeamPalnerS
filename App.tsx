@@ -63,7 +63,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           <div className="relative flex justify-between h-16 items-center">
             
             {/* Right: Mobile Menu & Desktop Nav */}
-            <div className="flex items-center gap-2 md:gap-8">
+            <div className="flex items-center gap-2 md:gap-8 z-20">
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="md:hidden p-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none"
@@ -77,8 +77,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </div>
             </div>
 
-            {/* Center: Logo & Club Name */}
-            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            {/* Center: Logo & Club Name - Added z-index to ensure clickability */}
+            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30">
                <button 
                  onClick={() => navigate('/app')}
                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -92,7 +92,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             </div>
             
             {/* Left: User & Logout */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 z-20">
               <div className="hidden sm:flex flex-col items-end">
                   <span className="text-xs md:text-sm text-slate-500">{user?.email}</span>
                   <span className="text-[10px] text-slate-300">v{APP_VERSION}</span>
@@ -106,7 +106,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden bg-white border-b border-slate-200 animate-in slide-in-from-top-5">
+          <div className="md:hidden bg-white border-b border-slate-200 animate-in slide-in-from-top-5 relative z-50">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
               <NavLink 
                 to="/app" 

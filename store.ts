@@ -7,27 +7,32 @@ export const SUPER_ADMIN_EMAIL = 'shaykashay@gmail.com';
 
 // --- MOCK DATA FOR KAYAK CLUB ---
 const MOCK_KAYAK_PEOPLE: Partial<Person>[] = [
-  { id: 'k1', name: 'יוסי כהן', role: Role.VOLUNTEER, rank: 5, notes: 'מדריך ותיק' },
-  { id: 'k2', name: 'רונית שחר', role: Role.VOLUNTEER, rank: 4 },
-  { id: 'k3', name: 'דני לוי', role: Role.VOLUNTEER, rank: 3 },
-  { id: 'k4', name: 'עמית פרידמן', role: Role.VOLUNTEER, rank: 5, notes: 'יכול לחתור בקיאק יחיד' },
-  { id: 'k5', name: 'שרה אהרוני', role: Role.MEMBER, rank: 1, notes: 'צריכה תמיכה בגב' },
-  { id: 'k6', name: 'משה ביטון', role: Role.MEMBER, rank: 2 },
-  { id: 'k7', name: 'נועה ברק', role: Role.MEMBER, rank: 3 },
-  { id: 'k8', name: 'אביב גפן', role: Role.GUEST, rank: 1, notes: 'פעם ראשונה בחוג' },
-  { id: 'k9', name: 'תומר חזן', role: Role.MEMBER, rank: 4 },
-  { id: 'k10', name: 'גלית סופר', role: Role.MEMBER, rank: 2 },
+  { id: 'k1', name: 'דורון שמעוני', role: Role.VOLUNTEER, rank: 5, notes: 'מדריך ראשי' },
+  { id: 'k2', name: 'ענת לביא', role: Role.VOLUNTEER, rank: 4 },
+  { id: 'k3', name: 'אורן בר', role: Role.VOLUNTEER, rank: 3 },
+  { id: 'k4', name: 'יעל גולן', role: Role.VOLUNTEER, rank: 5, notes: 'יכולה לחתור בקיאק יחיד' },
+  { id: 'k5', name: 'רוני ספקטור', role: Role.VOLUNTEER, rank: 4 },
+  { id: 'k6', name: 'דניאל אברהמי', role: Role.MEMBER, rank: 1, notes: 'צריך תמיכה בגב' },
+  { id: 'k7', name: 'שירה כהן', role: Role.MEMBER, rank: 2 },
+  { id: 'k8', name: 'איתי לוי', role: Role.MEMBER, rank: 3 },
+  { id: 'k9', name: 'נועם פרי', role: Role.GUEST, rank: 1, notes: 'פעם ראשונה בחוג' },
+  { id: 'k10', name: 'מאיה שדה', role: Role.MEMBER, rank: 4 },
+  { id: 'k11', name: 'יונתן הראל', role: Role.MEMBER, rank: 2 },
+  { id: 'k12', name: 'אביבית צור', role: Role.MEMBER, rank: 1 },
 ];
 
 // --- MOCK DATA FOR SAILING CLUB ---
 const MOCK_SAILING_PEOPLE: Partial<Person>[] = [
-  { id: 's1', name: 'אבי גבאי', role: Role.VOLUNTEER, rank: 5, notes: 'סקיפר' },
-  { id: 's2', name: 'מיכל ינאי', role: Role.VOLUNTEER, rank: 4 },
-  { id: 's3', name: 'גיא זוארץ', role: Role.VOLUNTEER, rank: 3 },
-  { id: 's4', name: 'אילנית לוי', role: Role.MEMBER, rank: 2, notes: 'חוששת ממים עמוקים' },
-  { id: 's5', name: 'קובי אוז', role: Role.MEMBER, rank: 3 },
-  { id: 's6', name: 'ריטה יהאן', role: Role.MEMBER, rank: 1, notes: 'להושיב במקום יציב' },
-  { id: 's7', name: 'עידן רייכל', role: Role.GUEST, rank: 1 },
+  { id: 's1', name: 'גיורא איילנד', role: Role.VOLUNTEER, rank: 5, notes: 'סקיפר מנוסה' },
+  { id: 's2', name: 'תמר זיו', role: Role.VOLUNTEER, rank: 4 },
+  { id: 's3', name: 'אמיר גלבוע', role: Role.VOLUNTEER, rank: 3 },
+  { id: 's4', name: 'רמי קליין', role: Role.VOLUNTEER, rank: 5 },
+  { id: 's5', name: 'נורית פלד', role: Role.MEMBER, rank: 2, notes: 'חוששת ממים עמוקים' },
+  { id: 's6', name: 'יוסי בניון', role: Role.MEMBER, rank: 3 },
+  { id: 's7', name: 'גילה אלמגור', role: Role.MEMBER, rank: 1, notes: 'להושיב במקום יציב' },
+  { id: 's8', name: 'ארז טל', role: Role.GUEST, rank: 1 },
+  { id: 's9', name: 'מירי מסיקה', role: Role.MEMBER, rank: 2 },
+  { id: 's10', name: 'שלמה ארצי', role: Role.MEMBER, rank: 4 },
 ];
 
 const DEFAULT_INVENTORY_VALUES: BoatInventory = {
@@ -448,10 +453,10 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'etgarim-storage',
-      version: 3.0, // Major version bump to 3.0 to force reload of new mock data
+      version: 4.0, // Major version bump to 4.0 to force reload of NEW mock data
       migrate: (persistedState: any, version: number) => {
-        // If version is older than 3.0, re-initialize people with new mock data
-        if (version < 3.0) {
+        // If version is older than 4.0, re-initialize people with new mock data
+        if (version < 4.0) {
             
             // Map mock data to full Person objects
             const kayakPeople = MOCK_KAYAK_PEOPLE.map(p => ({ ...p, clubId: ClubID.KAYAK } as Person));

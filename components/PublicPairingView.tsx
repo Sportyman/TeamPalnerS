@@ -56,8 +56,9 @@ export const PublicPairingView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4" dir="rtl">
-      <div className="max-w-3xl mx-auto space-y-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col" dir="rtl">
+      {/* Main Content */}
+      <div className="flex-1 py-8 px-4 w-full max-w-3xl mx-auto space-y-8">
         
         {/* Action Bar - Visible only on screen */}
         <div className="flex justify-between items-center print:hidden">
@@ -105,7 +106,6 @@ export const PublicPairingView: React.FC = () => {
                         <span className="font-bold text-slate-900 text-xl">
                           {member.name}
                         </span>
-                        {/* Removed print:hidden so role is visible in print/public view */}
                         <span className="text-xs text-slate-500 mr-auto font-medium">
                           {RoleLabel[member.role]}
                         </span>
@@ -120,11 +120,11 @@ export const PublicPairingView: React.FC = () => {
             );
           })}
         </div>
+      </div>
 
-        <div className="text-center text-xs text-slate-400 pt-8 print:hidden" dir="ltr">
-          Built by Shay Kalimi - @Shay.A.i
-        </div>
-
+      {/* Footer - Pushed to bottom */}
+      <div className="py-6 text-center text-xs text-slate-400 print:hidden mt-auto bg-slate-50" dir="ltr">
+        Built by Shay Kalimi - @Shay.A.i
       </div>
     </div>
   );
