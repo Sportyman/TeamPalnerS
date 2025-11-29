@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
-import { Role, RoleLabel, Person, BoatType, BoatTypeLabel } from '../types';
+import { Role, RoleLabel, Person, BoatType, BoatTypeLabel, ClubLabel } from '../types';
 import { Trash2, UserPlus, Star, Edit, X, Save, ChevronDown, ChevronUp, Plus, Users, Phone } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-  const { people, addPerson, updatePerson, removePerson } = useAppStore();
+  const { people, activeClub, addPerson, updatePerson, removePerson } = useAppStore();
   
   // Add State
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
@@ -19,10 +19,14 @@ export const Dashboard: React.FC = () => {
   // Edit Modal State
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
 
+  // Filter People by Active Club
+  const clubPeople = people.filter(p => p.clubId === activeClub);
+
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName) return;
     
+    // Note: addPerson inside store will inject the activeClubId
     addPerson({
       id: Date.now().toString(),
       name: newName,
@@ -106,12 +110,22 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6 pb-20">
       
-      {/* Edit Modal - Full Screen on Mobile, Centered on Desktop */}
+      {/* Header Info */}
+      <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold text-slate-800">
+             רשימת משתתפים: {activeClub ? ClubLabel[activeClub] : ''}
+          </h2>
+          <span className="text-sm bg-slate-100 px-3 py-1 rounded-full text-slate-600">
+             {clubPeople.length} רשומים
+          </span>
+      </div>
+
+      {/* Edit Modal */}
       {editingPerson && (
         <div className="fixed inset-0 z-50 flex md:items-center md:justify-center md:bg-black/50 bg-white md:bg-transparent">
-          <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:w-full md:max-w-lg md:rounded-xl shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200">
-            {/* Header - Fixed at top with Safe Area Support */}
-            <div className="bg-brand-50 p-4 border-b border-brand-100 flex justify-between items-center shrink-0 safe-area-top">
+          <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:w-full md:max-w-lg md:rounded-xl shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200 safe-area-top safe-area-bottom">
+            {/* Header */}
+            <div className="bg-brand-50 p-4 border-b border-brand-100 flex justify-between items-center shrink-0">
               <h3 className="font-bold text-lg text-brand-800">עריכת משתתף</h3>
               <button onClick={() => setEditingPerson(null)} className="text-slate-500 hover:text-slate-800 p-2" title="סגור חלון">
                 <X size={24} />
@@ -130,7 +144,6 @@ export const Dashboard: React.FC = () => {
                     onChange={(e) => setEditingPerson({ ...editingPerson, name: e.target.value })}
                     className="w-full px-3 py-3 md:py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-base"
                     required
-                    title="שם המשתתף המלא"
                   />
                 </div>
 
@@ -142,7 +155,6 @@ export const Dashboard: React.FC = () => {
                     onChange={(e) => setEditingPerson({ ...editingPerson, phone: e.target.value })}
                     className="w-full px-3 py-3 md:py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-base"
                     placeholder="05X-XXXXXXX"
-                    title="מספר טלפון"
                     dir="ltr"
                   />
                 </div>
@@ -153,7 +165,6 @@ export const Dashboard: React.FC = () => {
                     value={editingPerson.role}
                     onChange={(e) => setEditingPerson({ ...editingPerson, role: e.target.value as Role })}
                     className="w-full px-3 py-3 md:py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-base bg-white"
-                    title="בחר תפקיד במערכת"
                   >
                     <option value={Role.VOLUNTEER}>{RoleLabel[Role.VOLUNTEER]}</option>
                     <option value={Role.MEMBER}>{RoleLabel[Role.MEMBER]}</option>
@@ -167,7 +178,6 @@ export const Dashboard: React.FC = () => {
                     value={editingPerson.rank}
                     onChange={(e) => setEditingPerson({ ...editingPerson, rank: Number(e.target.value) })}
                     className="w-full px-3 py-3 md:py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-base bg-white"
-                    title="רמת המיומנות (1 - מתחיל, 5 - מנוסה)"
                   >
                     {[1, 2, 3, 4, 5].map((r) => (
                       <option key={r} value={r}>{r}</option>
@@ -177,13 +187,12 @@ export const Dashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">הערות כלליות</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">הערות</label>
                 <textarea
                   value={editingPerson.notes || ''}
                   onChange={(e) => setEditingPerson({ ...editingPerson, notes: e.target.value })}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none text-base"
                   rows={2}
-                  title="הערות רפואיות או כלליות"
                 />
               </div>
 
@@ -203,7 +212,6 @@ export const Dashboard: React.FC = () => {
                         } 
                       })}
                       className="w-full px-3 py-3 md:py-2 border rounded-md text-base bg-white"
-                      title="העדפת סוג כלי שיט לשיבוץ"
                     >
                       <option value="">ללא העדפה</option>
                       {Object.entries(BoatTypeLabel).map(([key, label]) => (
@@ -228,9 +236,9 @@ export const Dashboard: React.FC = () => {
                       )}
                     </div>
                     
-                    {/* Multi-Select List */}
+                    {/* Filter people by same club for partners */}
                     <div className="border rounded-md max-h-48 overflow-y-auto bg-slate-50 divide-y divide-slate-100">
-                      {people.filter(p => p.id !== editingPerson.id).map(p => {
+                      {clubPeople.filter(p => p.id !== editingPerson.id).map(p => {
                         const isSelected = editingPerson.preferredPartners?.includes(p.id);
                         return (
                           <label 
@@ -256,12 +264,11 @@ export const Dashboard: React.FC = () => {
 
             </form>
 
-            {/* Footer - Fixed at bottom with Safe Area Support */}
-            <div className="p-4 border-t border-slate-100 shrink-0 flex gap-3 bg-slate-50 safe-area-bottom">
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 shrink-0 flex gap-3 bg-slate-50">
               <button
                 onClick={handleUpdate}
                 className="flex-1 bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm text-lg md:text-base"
-                title="שמור את השינויים"
               >
                 <Save size={20} /> שמירה
               </button>
@@ -269,7 +276,6 @@ export const Dashboard: React.FC = () => {
                 type="button"
                 onClick={() => setEditingPerson(null)}
                 className="px-6 py-3 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-medium text-lg md:text-base"
-                title="בטל עריכה"
               >
                 ביטול
               </button>
@@ -278,12 +284,11 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Accordion: Add Person Form (Expanded with all fields) */}
+      {/* Accordion: Add Person Form */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden transition-all duration-300">
         <button 
           onClick={() => setIsAddFormOpen(!isAddFormOpen)}
           className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors"
-          title={isAddFormOpen ? "סגור טופס הוספה" : "פתח טופס הוספת משתתף"}
         >
           <div className="flex items-center gap-2 font-bold text-slate-700">
             <div className="bg-brand-100 text-brand-600 p-1 rounded-full"><Plus size={16} /></div>
@@ -304,7 +309,6 @@ export const Dashboard: React.FC = () => {
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
                       className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
-                      placeholder="לדוגמה: ישראל ישראלי"
                       required
                     />
                   </div>
@@ -354,7 +358,6 @@ export const Dashboard: React.FC = () => {
                   onChange={(e) => setNewNotes(e.target.value)}
                   className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-brand-500 outline-none"
                   rows={1}
-                  placeholder="הערות רפואיות או כלליות..."
                 />
               </div>
 
@@ -383,7 +386,7 @@ export const Dashboard: React.FC = () => {
                              )}
                         </div>
                         <div className="border rounded-md max-h-32 overflow-y-auto bg-white divide-y divide-slate-100">
-                            {people.map(p => (
+                            {clubPeople.map(p => (
                                 <label key={p.id} className="flex items-center justify-between p-2 hover:bg-slate-50 cursor-pointer">
                                     <span className="text-sm text-slate-700">
                                       {p.name} <span className="text-xs text-slate-400">({RoleLabel[p.role]})</span>
@@ -396,7 +399,7 @@ export const Dashboard: React.FC = () => {
                                     />
                                 </label>
                             ))}
-                            {people.length === 0 && <div className="p-2 text-xs text-slate-400">אין משתתפים אחרים</div>}
+                            {clubPeople.length === 0 && <div className="p-2 text-xs text-slate-400">אין משתתפים אחרים</div>}
                         </div>
                     </div>
                   </div>
@@ -413,9 +416,9 @@ export const Dashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Mobile Card List View - Redesigned & Compact */}
+      {/* Mobile Card List */}
       <div className="md:hidden space-y-2">
-        {people.map((person) => (
+        {clubPeople.map((person) => (
           <div key={person.id} className={`rounded-lg shadow-sm border p-3 ${getMobileCardColor(person.role)}`}>
              <div className="flex justify-between items-center mb-1">
                <div className="flex items-center gap-2">
@@ -453,14 +456,14 @@ export const Dashboard: React.FC = () => {
              )}
           </div>
         ))}
-        {people.length === 0 && (
+        {clubPeople.length === 0 && (
            <div className="text-center py-10 text-slate-400">
              לא נמצאו משתתפים. הוסף חדש באמצעות הטופס למעלה.
            </div>
         )}
       </div>
 
-      {/* Desktop Table View */}
+      {/* Desktop Table */}
       <div className="hidden md:block bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
         <table className="w-full text-right">
           <thead className="bg-slate-50 text-slate-600 text-sm uppercase tracking-wider">
@@ -474,7 +477,7 @@ export const Dashboard: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {people.map((person) => (
+            {clubPeople.map((person) => (
               <tr key={person.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 font-medium text-slate-800">
                   {person.name}
@@ -506,14 +509,12 @@ export const Dashboard: React.FC = () => {
                     <button
                       onClick={() => setEditingPerson(person)}
                       className="text-slate-400 hover:text-brand-500 transition-colors p-2 hover:bg-slate-100 rounded-full"
-                      title="ערוך פרטי משתתף"
                     >
                       <Edit size={18} />
                     </button>
                     <button
                       onClick={() => removePerson(person.id)}
                       className="text-slate-400 hover:text-red-500 transition-colors p-2 hover:bg-slate-100 rounded-full"
-                      title="מחק משתתף"
                     >
                       <Trash2 size={18} />
                     </button>
@@ -521,10 +522,10 @@ export const Dashboard: React.FC = () => {
                 </td>
               </tr>
             ))}
-            {people.length === 0 && (
+            {clubPeople.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
-                  לא נמצאו משתתפים. הוסף למעלה.
+                  לא נמצאו משתתפים בחוג זה.
                 </td>
               </tr>
             )}

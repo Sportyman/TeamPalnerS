@@ -22,9 +22,25 @@ export const BoatTypeLabel: Record<BoatType, string> = {
   [BoatType.PRIVATE]: 'סירה פרטית',
 };
 
-export const APP_VERSION = '1.0.2';
+// Multi-Tenancy Definitions
+export enum ClubID {
+  KAYAK = 'KAYAK',
+  SAILING = 'SAILING'
+}
 
-// High contrast palette (Alternating Warm/Cool/Neutral) for better visual distinction
+export const ClubLabel: Record<ClubID, string> = {
+  [ClubID.KAYAK]: 'מועדון הקיאקים',
+  [ClubID.SAILING]: 'מועדון השייט'
+};
+
+export interface UserPermission {
+  email: string;
+  allowedClubs: ClubID[];
+}
+
+export const APP_VERSION = '2.0.0'; // Major version bump for multi-tenancy
+
+// High contrast palette
 export const TEAM_COLORS = [
   'bg-blue-50 border-blue-200',      // Cool (Blue)
   'bg-orange-50 border-orange-200',  // Warm (Orange)
@@ -54,6 +70,7 @@ export interface PersonConstraints {
 
 export interface Person {
   id: string;
+  clubId: ClubID; // Association to specific club
   name: string;
   phone?: string;
   role: Role;
