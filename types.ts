@@ -27,6 +27,7 @@ export enum BoatType {
   PRIVATE = 'PRIVATE', // Owner's boat
 }
 
+// Default Labels (Can be overridden by ClubSettings)
 export const BoatTypeLabel: Record<BoatType, string> = {
   [BoatType.DOUBLE]: 'קיאק זוגי',
   [BoatType.SINGLE]: 'קיאק יחיד',
@@ -44,12 +45,16 @@ export const ClubLabel: Record<ClubID, string> = {
   [ClubID.SAILING]: 'מועדון השייט'
 };
 
+export interface ClubSettings {
+  boatLabels: Record<BoatType, string>;
+}
+
 export interface UserPermission {
   email: string;
   allowedClubs: ClubID[];
 }
 
-export const APP_VERSION = '2.2.0'; // Minor version bump for tags and dashboard
+export const APP_VERSION = '2.3.0';
 
 // High contrast palette
 export const TEAM_COLORS = [

@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { BoatTypeLabel, RoleLabel, Role, TEAM_COLORS } from '../types';
-import { Ship, Calendar, AlertCircle, Printer, LogIn } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { BoatTypeLabel, RoleLabel, Role, TEAM_COLORS, BoatType } from '../types';
+import { Ship, Calendar, AlertCircle, Printer } from 'lucide-react';
 
 interface PublicMember {
   name: string;
@@ -10,7 +11,7 @@ interface PublicMember {
 
 interface PublicTeam {
   id: string;
-  boatType: string; // serialized enum
+  boatType: string;
   members: PublicMember[];
 }
 
@@ -19,6 +20,7 @@ export const PublicPairingView: React.FC = () => {
   const [teams, setTeams] = useState<PublicTeam[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dateStr, setDateStr] = useState('');
+  const [customLabels, setCustomLabels] = useState<Record<string, string>>({ ...BoatTypeLabel });
 
   useEffect(() => {
     try {
@@ -30,12 +32,15 @@ export const PublicPairingView: React.FC = () => {
         return;
       }
 
-      // Decode Base64 (Handling Unicode characters for Hebrew)
+      // Decode Base64
       const jsonString = decodeURIComponent(escape(atob(data)));
       const parsedData = JSON.parse(jsonString);
       
       setTeams(parsedData.teams);
       setDateStr(parsedData.date || new Date().toLocaleDateString('he-IL'));
+      if (parsedData.labels) {
+          setCustomLabels(parsedData.labels);
+      }
       
     } catch (err) {
       console.error(err);
@@ -86,12 +91,15 @@ export const PublicPairingView: React.FC = () => {
         <div className="space-y-4">
           {teams.map((team, idx) => {
             const colorClass = TEAM_COLORS[idx % TEAM_COLORS.length];
+            // Use custom label if available, fallback to default
+            const label = customLabels[team.boatType] || BoatTypeLabel[team.boatType as BoatType];
+
             return (
               <div key={team.id || idx} className={`rounded-xl shadow-sm border-2 overflow-hidden break-inside-avoid print:shadow-none print:border-slate-300 ${colorClass}`}>
                 <div className="bg-white/30 px-4 py-3 border-b border-slate-100/50 flex justify-between items-center print:bg-white print:border-slate-300">
                   <span className="font-bold text-slate-800 text-lg">סירה {idx + 1}</span>
                   <span className="text-xs bg-white/60 border border-slate-200/50 px-2 py-1 rounded text-slate-700 font-medium print:border-slate-400">
-                    {BoatTypeLabel[team.boatType as keyof typeof BoatTypeLabel]}
+                    {label}
                   </span>
                 </div>
                 
@@ -122,7 +130,7 @@ export const PublicPairingView: React.FC = () => {
         </div>
       </div>
 
-      {/* Footer - Pushed to bottom */}
+      {/* Footer */}
       <div className="py-6 text-center text-xs text-slate-400 print:hidden mt-auto bg-slate-50" dir="ltr">
         Built by Shay Kalimi - @Shay.A.i
       </div>

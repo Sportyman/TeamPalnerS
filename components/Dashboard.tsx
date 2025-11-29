@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
-import { Role, RoleLabel, Person, BoatType, BoatTypeLabel, ClubLabel, Gender, GenderLabel, BoatInventory } from '../types';
-import { Trash2, UserPlus, Star, Edit, X, Save, Plus, Phone, Database, Settings, Users, Ship, ArrowRight, Tag } from 'lucide-react';
+import { Role, RoleLabel, Person, BoatType, ClubLabel, Gender, GenderLabel, BoatInventory, BoatTypeLabel } from '../types';
+import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-type ViewMode = 'MENU' | 'PEOPLE' | 'INVENTORY' | 'SETTINGS';
+type ViewMode = 'MENU' | 'PEOPLE' | 'INVENTORY';
 
 export const Dashboard: React.FC = () => {
   const { 
@@ -15,14 +16,20 @@ export const Dashboard: React.FC = () => {
       removePerson, 
       restoreDemoData,
       defaultInventories,
-      updateDefaultInventory
+      updateDefaultInventory,
+      clubSettings,
+      updateClubSettings
     } = useAppStore();
   
+  const navigate = useNavigate();
   const [view, setView] = useState<ViewMode>('MENU');
 
   // Inventory State
   const currentDefaults = activeClub ? defaultInventories[activeClub] : { doubles: 0, singles: 0, privates: 0 };
+  const currentSettings = activeClub && clubSettings[activeClub] ? clubSettings[activeClub] : { boatLabels: { ...BoatTypeLabel } };
+
   const [tempInventory, setTempInventory] = useState<BoatInventory>(currentDefaults);
+  const [tempLabels, setTempLabels] = useState<Record<BoatType, string>>(currentSettings.boatLabels);
 
   // People Management State
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
@@ -44,8 +51,11 @@ export const Dashboard: React.FC = () => {
   React.useEffect(() => {
     if (activeClub) {
         setTempInventory(defaultInventories[activeClub]);
+        if (clubSettings[activeClub]) {
+            setTempLabels(clubSettings[activeClub].boatLabels);
+        }
     }
-  }, [activeClub, defaultInventories, view]);
+  }, [activeClub, defaultInventories, clubSettings, view]);
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +128,7 @@ export const Dashboard: React.FC = () => {
 
   const saveInventory = () => {
     updateDefaultInventory(tempInventory);
+    updateClubSettings({ boatLabels: tempLabels });
     alert('הגדרות הציוד נשמרו בהצלחה!');
     setView('MENU');
   };
@@ -137,6 +148,14 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleRestore = () => {
+    if(confirm('האם לשחזר נתוני דמו? זה ימחק שינויים מקומיים.')) { 
+        restoreDemoData(); 
+        // Force reload to ensure everything is fresh
+        window.location.reload(); 
+    }
+  };
+
   // --- MENU VIEW ---
   if (view === 'MENU') {
       return (
@@ -146,17 +165,29 @@ export const Dashboard: React.FC = () => {
               </h1>
               <p className="text-center text-slate-500 mb-8">בחר אפשרות לניהול החוג</p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                 {/* Go To Session */}
+                  <button 
+                    onClick={() => navigate('/app')}
+                    className="col-span-1 md:col-span-2 bg-brand-600 text-white p-6 rounded-2xl shadow-md hover:bg-brand-500 hover:shadow-lg transition-all group flex items-center justify-center gap-4"
+                  >
+                      <Calendar size={32} className="text-brand-100" />
+                      <div className="text-center">
+                          <h3 className="font-bold text-xl">מעבר לאימון / שיבוץ</h3>
+                          <p className="text-sm text-brand-100 opacity-90">חזרה למסך השיבוץ הראשי</p>
+                      </div>
+                  </button>
+
                   <button 
                     onClick={() => setView('PEOPLE')}
                     className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-brand-300 transition-all group flex flex-col items-center gap-4"
                   >
                       <div className="bg-brand-50 text-brand-600 p-4 rounded-full group-hover:scale-110 transition-transform">
-                          <Users size={40} />
+                          <Users size={32} />
                       </div>
                       <div className="text-center">
-                          <h3 className="font-bold text-xl text-slate-800">ניהול משתתפים</h3>
-                          <p className="text-sm text-slate-500 mt-1">הוספה, עריכה ומחיקה של חברים ומתנדבים</p>
+                          <h3 className="font-bold text-lg text-slate-800">ניהול משתתפים</h3>
+                          <p className="text-sm text-slate-500 mt-1">עריכת רשימת השמות</p>
                       </div>
                   </button>
 
@@ -165,25 +196,20 @@ export const Dashboard: React.FC = () => {
                     className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-brand-300 transition-all group flex flex-col items-center gap-4"
                   >
                       <div className="bg-orange-50 text-orange-600 p-4 rounded-full group-hover:scale-110 transition-transform">
-                          <Ship size={40} />
+                          <Ship size={32} />
                       </div>
                       <div className="text-center">
-                          <h3 className="font-bold text-xl text-slate-800">ניהול ציוד</h3>
-                          <p className="text-sm text-slate-500 mt-1">הגדרת מלאי קבוע של כלי שיט</p>
+                          <h3 className="font-bold text-lg text-slate-800">ניהול ציוד</h3>
+                          <p className="text-sm text-slate-500 mt-1">הגדרת כמויות ושמות</p>
                       </div>
                   </button>
 
                   <button 
-                     onClick={() => { if(confirm('האם לשחזר נתוני דמו? זה ימחק שינויים מקומיים.')) { restoreDemoData(); alert('נתונים שוחזרו!'); } }}
-                     className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-brand-300 transition-all group flex flex-col items-center gap-4"
+                     onClick={handleRestore}
+                     className="col-span-1 md:col-span-2 mt-4 text-slate-400 hover:text-red-500 text-sm flex items-center justify-center gap-2"
                   >
-                      <div className="bg-slate-50 text-slate-600 p-4 rounded-full group-hover:scale-110 transition-transform">
-                          <Database size={40} />
-                      </div>
-                      <div className="text-center">
-                          <h3 className="font-bold text-xl text-slate-800">שחזור נתונים</h3>
-                          <p className="text-sm text-slate-500 mt-1">טעינת נתוני דוגמה (לפיתוח)</p>
-                      </div>
+                      <Database size={16} />
+                       שחזר נתוני דמו (איפוס)
                   </button>
               </div>
           </div>
@@ -201,48 +227,70 @@ export const Dashboard: React.FC = () => {
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <div className="flex items-center gap-3 mb-6 border-b pb-4">
                      <div className="bg-orange-100 text-orange-600 p-2 rounded-lg"><Ship size={24}/></div>
-                     <h2 className="text-2xl font-bold text-slate-800">ניהול מלאי ציוד</h2>
+                     <h2 className="text-2xl font-bold text-slate-800">ניהול מלאי וציוד</h2>
                 </div>
                 
                 <p className="text-sm text-slate-500 mb-6 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  הכמויות שתגדיר כאן ישמשו כברירת מחדל לכל אימון חדש שייפתח בעתיד.
+                  כאן ניתן להגדיר את כמויות הציוד הקבועות לכל אימון, וגם לשנות את שמות כלי השיט (למשל "סירה" במקום "קיאק").
                 </p>
 
                 <div className="space-y-8">
-                    <div>
-                        <label className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-slate-700 text-lg">קיאק זוגי (2 מושבים)</span>
-                            <span className="bg-brand-50 text-brand-700 px-3 py-1 rounded-lg font-bold text-xl">{tempInventory.doubles}</span>
-                        </label>
-                        <input 
+                    {/* Double */}
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                         <div className="flex justify-between items-center mb-3">
+                             <input 
+                               type="text" 
+                               value={tempLabels[BoatType.DOUBLE]}
+                               onChange={(e) => setTempLabels({...tempLabels, [BoatType.DOUBLE]: e.target.value})}
+                               className="font-bold text-lg bg-white border border-slate-200 rounded px-2 py-1 focus:ring-2 focus:ring-brand-500 outline-none w-48"
+                             />
+                             <span className="bg-brand-600 text-white px-3 py-1 rounded-lg font-bold text-lg">{tempInventory.doubles}</span>
+                         </div>
+                         <input 
                             type="range" min="0" max="20" 
                             value={tempInventory.doubles}
                             onChange={(e) => setTempInventory({ ...tempInventory, doubles: Number(e.target.value) })}
-                            className="w-full h-3 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-brand-600"
+                            className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
                         />
+                         <div className="text-xs text-slate-400 mt-2">סירה זו משמשת כברירת מחדל לזוגות או מתחילים</div>
                     </div>
-                    <div>
-                        <label className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-slate-700 text-lg">קיאק יחיד (מושב 1)</span>
-                            <span className="bg-brand-50 text-brand-700 px-3 py-1 rounded-lg font-bold text-xl">{tempInventory.singles}</span>
-                        </label>
-                        <input 
+
+                    {/* Single */}
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                         <div className="flex justify-between items-center mb-3">
+                             <input 
+                               type="text" 
+                               value={tempLabels[BoatType.SINGLE]}
+                               onChange={(e) => setTempLabels({...tempLabels, [BoatType.SINGLE]: e.target.value})}
+                               className="font-bold text-lg bg-white border border-slate-200 rounded px-2 py-1 focus:ring-2 focus:ring-brand-500 outline-none w-48"
+                             />
+                             <span className="bg-brand-600 text-white px-3 py-1 rounded-lg font-bold text-lg">{tempInventory.singles}</span>
+                         </div>
+                         <input 
                             type="range" min="0" max="20" 
                             value={tempInventory.singles}
                             onChange={(e) => setTempInventory({ ...tempInventory, singles: Number(e.target.value) })}
-                            className="w-full h-3 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-brand-600"
+                            className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
                         />
+                         <div className="text-xs text-slate-400 mt-2">סירה ליחיד או שייט מהיר</div>
                     </div>
-                    <div>
-                        <label className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-slate-700 text-lg">סירות פרטיות</span>
-                            <span className="bg-brand-50 text-brand-700 px-3 py-1 rounded-lg font-bold text-xl">{tempInventory.privates}</span>
-                        </label>
-                        <input 
+
+                    {/* Private */}
+                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                         <div className="flex justify-between items-center mb-3">
+                             <input 
+                               type="text" 
+                               value={tempLabels[BoatType.PRIVATE]}
+                               onChange={(e) => setTempLabels({...tempLabels, [BoatType.PRIVATE]: e.target.value})}
+                               className="font-bold text-lg bg-white border border-slate-200 rounded px-2 py-1 focus:ring-2 focus:ring-brand-500 outline-none w-48"
+                             />
+                             <span className="bg-brand-600 text-white px-3 py-1 rounded-lg font-bold text-lg">{tempInventory.privates}</span>
+                         </div>
+                         <input 
                             type="range" min="0" max="10" 
                             value={tempInventory.privates}
                             onChange={(e) => setTempInventory({ ...tempInventory, privates: Number(e.target.value) })}
-                            className="w-full h-3 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-brand-600"
+                            className="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
                         />
                     </div>
                 </div>

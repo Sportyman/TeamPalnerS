@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { Person, Role, SessionState, Team, BoatInventory, BoatType, ClubID, UserPermission, Gender } from './types';
+import { Person, Role, SessionState, Team, BoatInventory, BoatType, ClubID, UserPermission, Gender, BoatTypeLabel, ClubSettings } from './types';
 import { generateSmartPairings } from './services/pairingLogic';
 
 export const SUPER_ADMIN_EMAIL = 'shaykashay@gmail.com';
@@ -54,6 +54,8 @@ interface AppState {
   // Per-Club State Maps
   sessions: Record<ClubID, SessionState>;
   defaultInventories: Record<ClubID, BoatInventory>;
+  clubSettings: Record<ClubID, ClubSettings>;
+
   histories: Record<ClubID, Team[][]>;
   futures: Record<ClubID, Team[][]>;
   
@@ -76,6 +78,8 @@ interface AppState {
   setBulkAttendance: (ids: string[]) => void;
   updateInventory: (inventory: BoatInventory) => void;
   updateDefaultInventory: (inventory: BoatInventory) => void;
+  updateClubSettings: (settings: ClubSettings) => void;
+
   runPairing: () => void;
   resetSession: () => void;
   
@@ -83,6 +87,7 @@ interface AppState {
   addManualTeam: () => void;
   removeTeam: (teamId: string) => void;
   addGuestToTeam: (teamId: string, name: string) => void;
+  assignMemberToTeam: (teamId: string, personId: string) => void;
   moveMemberToTeam: (personId: string, targetTeamId: string) => void;
   reorderSessionMembers: (sourceTeamId: string, sourceIndex: number, destTeamId: string, destIndex: number) => void;
   swapMembers: (teamAId: string, indexA: number, teamBId: string, indexB: number) => void;
@@ -104,8 +109,8 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       user: null,
       activeClub: null,
-      permissions: [], // Start empty, Super Admin is hardcoded
-      people: [], // Will be migrated
+      permissions: [], 
+      people: [], 
       
       // Initialize maps for all clubs
       sessions: {
@@ -115,6 +120,10 @@ export const useAppStore = create<AppState>()(
       defaultInventories: {
         [ClubID.KAYAK]: DEFAULT_INVENTORY_VALUES,
         [ClubID.SAILING]: DEFAULT_INVENTORY_VALUES,
+      },
+      clubSettings: {
+        [ClubID.KAYAK]: { boatLabels: { ...BoatTypeLabel } },
+        [ClubID.SAILING]: { boatLabels: { ...BoatTypeLabel } },
       },
       histories: {
         [ClubID.KAYAK]: [],
@@ -131,18 +140,16 @@ export const useAppStore = create<AppState>()(
         const { activeClub, permissions } = get();
         const isSuperAdmin = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 
-        // 1. Super Admin always allowed
         if (isSuperAdmin) {
           set({ user: { email, isAdmin: true } });
           return true;
         }
 
-        // 2. Check Permissions for Active Club
         if (!activeClub) return false;
 
         const userPerm = permissions.find(p => p.email.toLowerCase() === email.toLowerCase());
         if (userPerm && userPerm.allowedClubs.includes(activeClub)) {
-          set({ user: { email, isAdmin: false } }); // Normal admin
+          set({ user: { email, isAdmin: false } }); 
           return true;
         }
 
@@ -151,7 +158,6 @@ export const useAppStore = create<AppState>()(
 
       logout: () => set({ user: null }),
 
-      // Admin Management
       addPermission: (email, clubId) => set(state => {
         const existing = state.permissions.find(p => p.email === email);
         let newPermissions;
@@ -171,7 +177,7 @@ export const useAppStore = create<AppState>()(
           p.email === email 
             ? { ...p, allowedClubs: p.allowedClubs.filter(c => c !== clubId) }
             : p
-        ).filter(p => p.allowedClubs.length > 0) // Remove user if no clubs left
+        ).filter(p => p.allowedClubs.length > 0)
       })),
 
       addPerson: (personData) => set((state) => {
@@ -192,10 +198,16 @@ export const useAppStore = create<AppState>()(
         const kayakPeople = MOCK_KAYAK_PEOPLE.map(p => ({ ...p, clubId: ClubID.KAYAK } as Person));
         const sailingPeople = MOCK_SAILING_PEOPLE.map(p => ({ ...p, clubId: ClubID.SAILING } as Person));
         
-        // Combine keeping existing non-mock people if we wanted, but for restore we just wipe and set mock
-        const allPeople = [...kayakPeople, ...sailingPeople];
-        
-        return { people: allPeople };
+        // Reset Labels as well
+        const defaultSettings = { boatLabels: { ...BoatTypeLabel } };
+
+        return { 
+          people: [...kayakPeople, ...sailingPeople],
+          clubSettings: {
+             [ClubID.KAYAK]: defaultSettings,
+             [ClubID.SAILING]: defaultSettings
+          }
+        };
       }),
 
       toggleAttendance: (id) => set((state) => {
@@ -241,11 +253,21 @@ export const useAppStore = create<AppState>()(
       updateDefaultInventory: (inventory) => set((state) => {
         const { activeClub } = state;
         if (!activeClub) return state;
-        
         return {
           defaultInventories: {
             ...state.defaultInventories,
             [activeClub]: inventory
+          }
+        };
+      }),
+
+      updateClubSettings: (settings) => set((state) => {
+        const { activeClub } = state;
+        if (!activeClub) return state;
+        return {
+          clubSettings: {
+            ...state.clubSettings,
+            [activeClub]: settings
           }
         };
       }),
@@ -256,7 +278,6 @@ export const useAppStore = create<AppState>()(
         
         const currentSession = sessions[activeClub];
 
-        // Reset history for this club
         set((state) => ({
           histories: { ...state.histories, [activeClub]: [] },
           futures: { ...state.futures, [activeClub]: [] }
@@ -303,7 +324,7 @@ export const useAppStore = create<AppState>()(
         const newTeam: Team = {
             id: Date.now().toString(),
             members: [],
-            boatType: BoatType.DOUBLE, // Default
+            boatType: BoatType.DOUBLE,
             boatCount: 1
         };
 
@@ -382,10 +403,40 @@ export const useAppStore = create<AppState>()(
         }));
       },
 
+      assignMemberToTeam: (teamId, personId) => {
+        const { activeClub, sessions, people } = get();
+        if (!activeClub) return;
+        const currentSession = sessions[activeClub];
+        const person = people.find(p => p.id === personId);
+        if (!person) return;
+
+        const newTeams = currentSession.teams.map(t => {
+            if (t.id === teamId) {
+                return { ...t, members: [...t.members, person] };
+            }
+            return t;
+        });
+
+        set((state) => ({
+             histories: { 
+                 ...state.histories, 
+                 [activeClub]: [...state.histories[activeClub], currentSession.teams] 
+             },
+             futures: { ...state.futures, [activeClub]: [] },
+             sessions: {
+                 ...state.sessions,
+                 [activeClub]: { 
+                     ...currentSession, 
+                     presentPersonIds: [...currentSession.presentPersonIds, person.id],
+                     teams: newTeams 
+                 }
+             }
+        }));
+      },
+
       moveMemberToTeam: (personId, targetTeamId) => {
         const { activeClub, sessions, people } = get();
         if (!activeClub) return;
-        
         const currentSession = sessions[activeClub];
 
         set((state) => ({
@@ -422,7 +473,6 @@ export const useAppStore = create<AppState>()(
       reorderSessionMembers: (sourceTeamId, sourceIndex, destTeamId, destIndex) => {
         const { activeClub, sessions } = get();
         if (!activeClub) return;
-        
         const currentSession = sessions[activeClub];
 
         set((state) => ({
@@ -555,33 +605,42 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'etgarim-storage',
-      version: 5.3, // Bumped to 5.3 to add tags
+      version: 6.0, 
       migrate: (persistedState: any, version: number) => {
-        if (version < 5.3) {
-            const kayakPeople = MOCK_KAYAK_PEOPLE.map(p => ({ ...p, clubId: ClubID.KAYAK } as Person));
-            const sailingPeople = MOCK_SAILING_PEOPLE.map(p => ({ ...p, clubId: ClubID.SAILING } as Person));
-            const allPeople = [...kayakPeople, ...sailingPeople];
-
-            return {
-                ...persistedState,
-                people: allPeople,
-                sessions: persistedState.sessions || {
-                    [ClubID.KAYAK]: { inventory: DEFAULT_INVENTORY_VALUES, presentPersonIds: [], teams: [] },
-                    [ClubID.SAILING]: { inventory: DEFAULT_INVENTORY_VALUES, presentPersonIds: [], teams: [] },
-                },
-                defaultInventories: persistedState.defaultInventories || {
-                    [ClubID.KAYAK]: DEFAULT_INVENTORY_VALUES,
-                    [ClubID.SAILING]: DEFAULT_INVENTORY_VALUES,
-                },
-            } as AppState;
+        // Migration logic to ensure data consistency
+        const defaultSettings = { boatLabels: { ...BoatTypeLabel } };
+        
+        // Always populate people if empty in migration (fixes the empty list issue)
+        let migratedPeople = persistedState.people || [];
+        if (migratedPeople.length === 0) {
+           const kayakPeople = MOCK_KAYAK_PEOPLE.map(p => ({ ...p, clubId: ClubID.KAYAK } as Person));
+           const sailingPeople = MOCK_SAILING_PEOPLE.map(p => ({ ...p, clubId: ClubID.SAILING } as Person));
+           migratedPeople = [...kayakPeople, ...sailingPeople];
         }
-        return persistedState as AppState;
+
+        return {
+            ...persistedState,
+            people: migratedPeople,
+            clubSettings: persistedState.clubSettings || {
+                [ClubID.KAYAK]: defaultSettings,
+                [ClubID.SAILING]: defaultSettings,
+            },
+            sessions: persistedState.sessions || {
+                [ClubID.KAYAK]: { inventory: DEFAULT_INVENTORY_VALUES, presentPersonIds: [], teams: [] },
+                [ClubID.SAILING]: { inventory: DEFAULT_INVENTORY_VALUES, presentPersonIds: [], teams: [] },
+            },
+            defaultInventories: persistedState.defaultInventories || {
+                [ClubID.KAYAK]: DEFAULT_INVENTORY_VALUES,
+                [ClubID.SAILING]: DEFAULT_INVENTORY_VALUES,
+            },
+        } as AppState;
       },
       partialize: (state) => ({
         user: state.user,
         people: state.people,
         sessions: state.sessions,
         defaultInventories: state.defaultInventories,
+        clubSettings: state.clubSettings,
         permissions: state.permissions
       })
     }

@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppStore, SUPER_ADMIN_EMAIL } from '../store';
 import { ShieldCheck, Mail, Zap, AlertTriangle, ArrowRight } from 'lucide-react';
-import { ClubLabel } from '../types';
+import { ClubLabel, APP_VERSION } from '../types';
 
 export const Login: React.FC = () => {
   const { login, user, activeClub } = useAppStore();
@@ -48,7 +49,7 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 space-y-6">
         
         {/* Header */}
@@ -124,6 +125,12 @@ export const Login: React.FC = () => {
             כניסה מהירה כמנהל על (Dev)
         </button>
 
+      </div>
+      
+      {/* Credits Footer */}
+      <div className="mt-8 text-center text-xs text-slate-400" dir="ltr">
+         <p>Version {APP_VERSION}</p>
+         <p className="mt-1">Built by Shay Kalimi - @Shay.A.i</p>
       </div>
     </div>
   );

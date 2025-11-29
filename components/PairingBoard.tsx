@@ -1,16 +1,18 @@
+
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { Team, Role, RoleLabel, BoatTypeLabel, BoatType, TEAM_COLORS, Person } from '../types';
-import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Dices, X, Plus, Trash2 } from 'lucide-react';
+import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Dices, X, Plus, Trash2, Search, UserPlus } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
-// Pairing Board Component - Updated for Multi-Tenancy and Strict TypeScript
+// Pairing Board Component
 export const PairingBoard: React.FC = () => {
   const { 
     activeClub,
     sessions, 
     histories, 
     futures,
+    people,
     reorderSessionMembers, 
     swapMembers, 
     undo, 
@@ -19,21 +21,29 @@ export const PairingBoard: React.FC = () => {
     runPairing,
     addManualTeam,
     removeTeam,
-    addGuestToTeam
+    addGuestToTeam,
+    assignMemberToTeam,
+    clubSettings
   } = useAppStore();
   
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [swapSource, setSwapSource] = useState<{ teamId: string, index: number } | null>(null);
 
+  // Modal State for Adding Members
+  const [addMemberModal, setAddMemberModal] = useState<{ isOpen: boolean, teamId: string | null }>({ isOpen: false, teamId: null });
+  const [memberSearch, setMemberSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'EXISTING' | 'GUEST'>('EXISTING');
+  const [newGuestName, setNewGuestName] = useState('');
+
   // Fallback for null activeClub
   if (!activeClub) return null;
 
-  // Retrieve current session safely from the sessions map using activeClub
   const session = sessions[activeClub];
   const history = histories[activeClub];
   const future = futures[activeClub];
+  const settings = clubSettings[activeClub] || { boatLabels: { ...BoatTypeLabel } };
+  const boatLabels = settings.boatLabels;
 
-  // Additional safety check if session data isn't ready
   if (!session) return <div>טוען נתונים...</div>;
 
   const onDragEnd = (result: DropResult) => {
@@ -71,10 +81,25 @@ export const PairingBoard: React.FC = () => {
     }
   };
 
-  const handleAddGuest = (teamId: string) => {
-      const name = window.prompt('הכנס שם אורח/משתתף:');
-      if (name && name.trim()) {
-          addGuestToTeam(teamId, name.trim());
+  const openAddMemberModal = (teamId: string) => {
+      setAddMemberModal({ isOpen: true, teamId });
+      setMemberSearch('');
+      setActiveTab('EXISTING');
+      setNewGuestName('');
+  };
+
+  const handleAssignExisting = (personId: string) => {
+      if (addMemberModal.teamId) {
+          assignMemberToTeam(addMemberModal.teamId, personId);
+          setAddMemberModal({ isOpen: false, teamId: null });
+      }
+  };
+
+  const handleAddGuestSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (addMemberModal.teamId && newGuestName.trim()) {
+          addGuestToTeam(addMemberModal.teamId, newGuestName.trim());
+          setAddMemberModal({ isOpen: false, teamId: null });
       }
   };
 
@@ -89,7 +114,6 @@ export const PairingBoard: React.FC = () => {
 
   const generateShareData = () => {
     // 1. Filter out sensitive data (rank, notes, ids)
-    // Explicitly typed 't' to avoid implicit any error
     const cleanTeams = session.teams.map((t: Team) => ({
       id: t.id,
       boatType: t.boatType,
@@ -101,6 +125,7 @@ export const PairingBoard: React.FC = () => {
 
     const payload = {
       date: new Date().toLocaleDateString('he-IL'),
+      labels: boatLabels, // Include Custom Labels
       teams: cleanTeams
     };
 
@@ -108,9 +133,8 @@ export const PairingBoard: React.FC = () => {
     const jsonString = JSON.stringify(payload);
     const encoded = btoa(unescape(encodeURIComponent(jsonString)));
     
-    // 3. Create URL - Robust hash handling for Share
+    // 3. Create URL
     const origin = window.location.origin;
-    // Construct valid absolute URL for HashRouter
     const shareUrl = `${origin}${window.location.pathname}#/share?data=${encoded}`;
     return shareUrl;
   };
@@ -120,7 +144,6 @@ export const PairingBoard: React.FC = () => {
     window.open(url, '_blank');
   };
 
-  // Improved Share Handler: Tries Native Share first, falls back to Modal
   const handleMainShareClick = async () => {
     const url = generateShareData();
     const shareData = {
@@ -129,21 +152,17 @@ export const PairingBoard: React.FC = () => {
       url: url
     };
 
-    // Try Native Share API (Mobile/Supported Browsers)
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-        return; // Success! No need to show menu.
+        return; 
       } catch (err) {
         console.log('User closed share sheet or error:', err);
-        // If user cancelled, we don't necessarily need to open the menu, 
-        // but if it failed for technical reasons, we might want to.
         if ((err as Error).name !== 'AbortError') {
              setShowShareMenu(true);
         }
       }
     } else {
-      // Fallback for Desktop/Unsupported browsers
       setShowShareMenu(true);
     }
   };
@@ -185,10 +204,17 @@ export const PairingBoard: React.FC = () => {
     return 'text-green-500';
   };
 
+  // Filter available people for the modal
+  const availablePeople = people.filter(p => 
+      p.clubId === activeClub && 
+      !session.presentPersonIds.includes(p.id) &&
+      p.name.includes(memberSearch)
+  );
+
   return (
     <div className="space-y-6 pb-20"> 
       
-      {/* Share Modal - Centered Overlay (Fallback for Desktop) */}
+      {/* Share Modal */}
       {showShareMenu && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200" onClick={() => setShowShareMenu(false)}>
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -216,7 +242,97 @@ export const PairingBoard: React.FC = () => {
         </div>
       )}
 
-      {/* Screen Header - Hidden on Print */}
+      {/* Add Member Modal */}
+      {addMemberModal.isOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 animate-in fade-in zoom-in duration-200">
+              <div className="bg-white w-full max-w-md rounded-xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden">
+                  <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                      <h3 className="font-bold text-lg text-slate-800">הוספת שייט לסירה</h3>
+                      <button onClick={() => setAddMemberModal({ isOpen: false, teamId: null })} className="text-slate-400 hover:text-slate-700 p-1">
+                          <X size={24} />
+                      </button>
+                  </div>
+
+                  <div className="flex border-b border-slate-100">
+                      <button 
+                          onClick={() => setActiveTab('EXISTING')}
+                          className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'EXISTING' ? 'text-brand-600 border-b-2 border-brand-600 bg-brand-50/50' : 'text-slate-500 hover:bg-slate-50'}`}
+                      >
+                          בחר מרשימה
+                      </button>
+                      <button 
+                           onClick={() => setActiveTab('GUEST')}
+                           className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'GUEST' ? 'text-brand-600 border-b-2 border-brand-600 bg-brand-50/50' : 'text-slate-500 hover:bg-slate-50'}`}
+                      >
+                          אורח חדש
+                      </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-4">
+                      {activeTab === 'EXISTING' ? (
+                          <div className="space-y-4">
+                               <div className="relative">
+                                  <Search className="absolute right-3 top-2.5 text-slate-400" size={18} />
+                                  <input 
+                                      type="text" 
+                                      placeholder="חפש חבר..." 
+                                      value={memberSearch}
+                                      onChange={e => setMemberSearch(e.target.value)}
+                                      className="w-full pr-10 pl-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                                  />
+                               </div>
+                               <div className="space-y-2">
+                                  {availablePeople.length > 0 ? (
+                                      availablePeople.map(p => (
+                                          <button 
+                                              key={p.id}
+                                              onClick={() => handleAssignExisting(p.id)}
+                                              className="w-full text-right p-3 hover:bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-between group transition-colors"
+                                          >
+                                              <div>
+                                                  <div className="font-bold text-slate-800">{p.name}</div>
+                                                  <div className="text-xs text-slate-500">{RoleLabel[p.role]}</div>
+                                              </div>
+                                              <Plus size={18} className="text-slate-300 group-hover:text-brand-600" />
+                                          </button>
+                                      ))
+                                  ) : (
+                                      <div className="text-center py-8 text-slate-400 text-sm">
+                                          לא נמצאו חברים פנויים.
+                                          <br/>
+                                          (אולי הם כבר משובצים?)
+                                      </div>
+                                  )}
+                               </div>
+                          </div>
+                      ) : (
+                          <form onSubmit={handleAddGuestSubmit} className="space-y-4 pt-4">
+                              <div>
+                                  <label className="block text-sm font-medium text-slate-700 mb-1">שם האורח</label>
+                                  <input 
+                                      type="text" 
+                                      value={newGuestName}
+                                      onChange={e => setNewGuestName(e.target.value)}
+                                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                                      placeholder="הכנס שם מלא"
+                                      autoFocus
+                                      required
+                                  />
+                              </div>
+                              <button 
+                                  type="submit" 
+                                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2"
+                              >
+                                  <UserPlus size={18} /> הוסף שייט
+                              </button>
+                          </form>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Screen Header */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 print:hidden">
         <div>
           <div className="flex items-center gap-3">
@@ -240,12 +356,11 @@ export const PairingBoard: React.FC = () => {
             </div>
             )}
             
-             {/* Undo/Redo/Remix Buttons */}
             <div className="flex gap-2 w-full md:w-auto">
                <button
                   onClick={handleRemix}
                   className="p-2 rounded-lg border border-slate-200 text-brand-600 hover:bg-brand-50"
-                  title="ערבב מחדש (צור שיבוצים מחדש)"
+                  title="ערבב מחדש"
                >
                  <Dices size={18} />
                </button>
@@ -254,7 +369,6 @@ export const PairingBoard: React.FC = () => {
                   onClick={undo}
                   disabled={!history || history.length === 0}
                   className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="בטל פעולה אחרונה"
                >
                  <RotateCcw size={18} />
                </button>
@@ -262,18 +376,15 @@ export const PairingBoard: React.FC = () => {
                   onClick={redo}
                   disabled={!future || future.length === 0}
                   className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="שחזר פעולה שבוטלה"
                >
                  <RotateCw size={18} />
                </button>
             </div>
             
             <div className="relative flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
-               
                <button 
                   onClick={handleOpenPublicView}
                   className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-                  title="פתח תצוגה נקייה בחלון חדש"
               >
                   <Eye size={16} /> מבט נקי
               </button>
@@ -281,7 +392,6 @@ export const PairingBoard: React.FC = () => {
                <button 
                   onClick={handleMainShareClick}
                   className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-                  title="שתף רשימה נקייה (ללא דירוגים)"
               >
                   <Share2 size={16} /> שיתוף
               </button>
@@ -289,7 +399,6 @@ export const PairingBoard: React.FC = () => {
               <button 
                   onClick={handlePrint}
                   className="flex-1 md:flex-none justify-center flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-                  title="הדפס דף שיבוצים נקי (ללא דירוגים)"
               >
                   <Printer size={16} /> הדפס
               </button>
@@ -297,7 +406,7 @@ export const PairingBoard: React.FC = () => {
         </div>
       </div>
 
-      {/* Interactive Board - Hidden on Print */}
+      {/* Interactive Board */}
       <div className="print:hidden">
         <DragDropContext onDragEnd={onDragEnd}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -318,9 +427,8 @@ export const PairingBoard: React.FC = () => {
                             value={team.boatType}
                             onChange={(e) => updateTeamBoatType(team.id, e.target.value as BoatType)}
                             className="font-bold text-slate-800 text-lg bg-transparent border-none focus:ring-0 cursor-pointer outline-none hover:text-brand-600 transition-colors max-w-[130px]"
-                            title="שנה סוג סירה"
                         >
-                            {Object.entries(BoatTypeLabel).map(([key, label]) => (
+                            {Object.entries(boatLabels).map(([key, label]) => (
                                 <option key={key} value={key}>{label}</option>
                             ))}
                         </select>
@@ -339,7 +447,6 @@ export const PairingBoard: React.FC = () => {
                     <button 
                         onClick={() => handleDeleteTeam(team.id, team.members.length)}
                         className="text-slate-400 hover:text-red-500 p-1 rounded-full hover:bg-white/50 transition-colors"
-                        title="מחק סירה זו"
                     >
                         <Trash2 size={16} />
                     </button>
@@ -384,15 +491,13 @@ export const PairingBoard: React.FC = () => {
                                     ${swapSource && !isSwappingMe ? 'cursor-pointer hover:bg-brand-50' : ''}
                                 `}
                                 onClick={() => swapSource && handleSwapClick(team.id, index)}
-                                title={`רמה: ${member.rank}. גרור את הידית לשינוי סדר, או לחץ להחלפה.`}
+                                title={`רמה: ${member.rank}`}
                                 >
 
-                                {/* Grip Icon - ENLARGED & EXPLICIT TOUCH ACTION */}
                                 <div 
                                     {...provided.dragHandleProps}
                                     style={{ touchAction: 'none' }}
                                     className="p-4 -mr-2 ml-2 text-slate-400 hover:text-brand-600 bg-slate-100/50 hover:bg-slate-200/50 rounded-md cursor-grab active:cursor-grabbing flex items-center justify-center shrink-0"
-                                    title="גרור לשינוי סדר"
                                 >
                                     <GripVertical size={24} />
                                 </div>
@@ -428,7 +533,6 @@ export const PairingBoard: React.FC = () => {
                                     }
                                     ${swapSource ? 'opacity-100' : ''}
                                     `}
-                                    title={isSwappingMe ? "בטל בחירה" : "החלף משתתף זה"}
                                 >
                                     {isSwappingMe ? <Check size={18} /> : <ArrowRightLeft size={18} />}
                                 </button>
@@ -439,11 +543,9 @@ export const PairingBoard: React.FC = () => {
                         })}
                         {provided.placeholder}
                         
-                        {/* Quick Add Guest Button */}
                         <button
-                             onClick={() => handleAddGuest(team.id)}
+                             onClick={() => openAddMemberModal(team.id)}
                              className="w-full py-2 mt-auto border-2 border-dashed border-slate-300 rounded-lg text-slate-400 hover:text-brand-600 hover:border-brand-300 hover:bg-white/50 transition-colors flex items-center justify-center gap-1 text-sm font-medium"
-                             title="הוסף משתתף ידני לסירה זו"
                         >
                             <Plus size={16} /> הוסף שייט
                         </button>
@@ -457,7 +559,7 @@ export const PairingBoard: React.FC = () => {
         </DragDropContext>
       </div>
 
-      {/* PRINT ONLY VIEW - Visible only when printing */}
+      {/* PRINT ONLY VIEW */}
       <div className="hidden print:block space-y-8">
         <div className="text-center mb-8">
             <h1 className="text-3xl font-bold">רשימת שיבוצים לאימון</h1>
@@ -469,7 +571,7 @@ export const PairingBoard: React.FC = () => {
                 <div key={team.id} className="border-b border-slate-300 pb-2 break-inside-avoid page-break-inside-avoid">
                     <div className="flex items-baseline gap-4 mb-2">
                          <span className="text-xl font-bold">סירה {idx + 1}</span>
-                         <span className="text-sm px-2 py-1 bg-slate-100 rounded border">{BoatTypeLabel[team.boatType as BoatType]}</span>
+                         <span className="text-sm px-2 py-1 bg-slate-100 rounded border">{boatLabels[team.boatType]}</span>
                     </div>
                     <div className="flex gap-4 pr-4">
                         {team.members.map((m: Person) => (

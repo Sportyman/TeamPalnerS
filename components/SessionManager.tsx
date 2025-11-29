@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
-import { BoatInventory, RoleLabel, Role, Person, ClubLabel } from '../types';
+import { BoatInventory, RoleLabel, Role, Person, ClubLabel, BoatType, BoatTypeLabel } from '../types';
 import { Ship, Users, CheckCircle2, Circle, ArrowLeft, ArrowRight, CheckSquare, Square, Save, RotateCcw, ArrowDownAZ, ArrowUpNarrowWide, Shield } from 'lucide-react';
 import { PairingBoard } from './PairingBoard';
 
@@ -16,13 +17,16 @@ export const SessionManager: React.FC = () => {
     updateInventory, 
     updateDefaultInventory,
     runPairing,
-    resetSession
+    resetSession,
+    clubSettings
   } = useAppStore();
 
   // Safety check
   if (!activeClub) return null;
 
   const currentSession = sessions[activeClub];
+  const settings = clubSettings[activeClub] || { boatLabels: { ...BoatTypeLabel } };
+  const boatLabels = settings.boatLabels;
   
   // Filter people for this club
   const clubPeople = people.filter(p => p.clubId === activeClub);
@@ -155,7 +159,6 @@ export const SessionManager: React.FC = () => {
             <RotateCcw size={14} /> איפוס אימון
           </button>
         </div>
-        {/* We pass nothing to PairingBoard as it now uses store directly, but store uses activeClub */}
         <PairingBoard />
       </div>
     );
@@ -320,7 +323,7 @@ export const SessionManager: React.FC = () => {
 
             <div>
               <label className="flex items-center justify-between mb-2">
-                <span className="font-medium text-slate-700">קיאק זוגי (2 מושבים)</span>
+                <span className="font-medium text-slate-700">{boatLabels[BoatType.DOUBLE]}</span>
                 <span className="text-brand-600 font-bold text-xl">{localInventory.doubles}</span>
               </label>
               <input 
@@ -332,7 +335,7 @@ export const SessionManager: React.FC = () => {
             </div>
             <div>
               <label className="flex items-center justify-between mb-2">
-                <span className="font-medium text-slate-700">קיאק יחיד (מושב 1)</span>
+                <span className="font-medium text-slate-700">{boatLabels[BoatType.SINGLE]}</span>
                 <span className="text-brand-600 font-bold text-xl">{localInventory.singles}</span>
               </label>
               <input 
@@ -344,7 +347,7 @@ export const SessionManager: React.FC = () => {
             </div>
             <div>
               <label className="flex items-center justify-between mb-2">
-                <span className="font-medium text-slate-700">סירות פרטיות (בעלים)</span>
+                <span className="font-medium text-slate-700">{boatLabels[BoatType.PRIVATE]}</span>
                 <span className="text-brand-600 font-bold text-xl">{localInventory.privates}</span>
               </label>
               <input 
