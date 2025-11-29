@@ -1,15 +1,37 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
-import { Team, Role, RoleLabel, BoatTypeLabel, BoatType, TEAM_COLORS } from '../types';
+import { Team, Role, RoleLabel, BoatTypeLabel, BoatType, TEAM_COLORS, Person } from '../types';
 import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Dices, X } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
+// Pairing Board Component - Updated for Multi-Tenancy and Strict TypeScript
 export const PairingBoard: React.FC = () => {
-  const { session, reorderSessionMembers, swapMembers, undo, redo, history, future, updateTeamBoatType, runPairing } = useAppStore();
-  const [showShareMenu, setShowShareMenu] = useState(false);
+  const { 
+    activeClub,
+    sessions, 
+    histories, 
+    futures,
+    reorderSessionMembers, 
+    swapMembers, 
+    undo, 
+    redo, 
+    updateTeamBoatType, 
+    runPairing 
+  } = useAppStore();
   
-  // Swap Mode State
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [swapSource, setSwapSource] = useState<{ teamId: string, index: number } | null>(null);
+
+  // Fallback for null activeClub
+  if (!activeClub) return null;
+
+  // Retrieve current session safely from the sessions map using activeClub
+  const session = sessions[activeClub];
+  const history = histories[activeClub];
+  const future = futures[activeClub];
+
+  // Additional safety check if session data isn't ready
+  if (!session) return <div>טוען נתונים...</div>;
 
   const onDragEnd = (result: DropResult) => {
     const { source, destination } = result;
@@ -48,10 +70,11 @@ export const PairingBoard: React.FC = () => {
 
   const generateShareData = () => {
     // 1. Filter out sensitive data (rank, notes, ids)
-    const cleanTeams = session.teams.map(t => ({
+    // Explicitly typed 't' to avoid implicit any error
+    const cleanTeams = session.teams.map((t: Team) => ({
       id: t.id,
       boatType: t.boatType,
-      members: t.members.map(m => ({
+      members: t.members.map((m: Person) => ({
         name: m.name,
         role: m.role
       }))
@@ -96,7 +119,6 @@ export const PairingBoard: React.FC = () => {
         console.log('User closed share sheet or error:', err);
         // If user cancelled, we don't necessarily need to open the menu, 
         // but if it failed for technical reasons, we might want to.
-        // For now, let's allow manual fallback if they click again or if error wasn't AbortError.
         if ((err as Error).name !== 'AbortError') {
              setShowShareMenu(true);
         }
@@ -202,7 +224,7 @@ export const PairingBoard: React.FC = () => {
                <div className="w-px bg-slate-200 mx-1"></div>
                <button
                   onClick={undo}
-                  disabled={history.length === 0}
+                  disabled={!history || history.length === 0}
                   className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
                   title="בטל פעולה אחרונה"
                >
@@ -210,7 +232,7 @@ export const PairingBoard: React.FC = () => {
                </button>
                <button
                   onClick={redo}
-                  disabled={future.length === 0}
+                  disabled={!future || future.length === 0}
                   className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed"
                   title="שחזר פעולה שבוטלה"
                >
@@ -304,7 +326,7 @@ export const PairingBoard: React.FC = () => {
                         snapshot.isDraggingOver ? 'bg-white/40' : ''
                         }`}
                     >
-                        {team.members.map((member, index) => {
+                        {team.members.map((member: Person, index: number) => {
                         const isSwappingMe = swapSource?.teamId === team.id && swapSource?.index === index;
                         
                         return (
@@ -403,14 +425,14 @@ export const PairingBoard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-6">
-            {session.teams.map((team, idx) => (
+            {session.teams.map((team: Team, idx: number) => (
                 <div key={team.id} className="border-b border-slate-300 pb-2 break-inside-avoid page-break-inside-avoid">
                     <div className="flex items-baseline gap-4 mb-2">
                          <span className="text-xl font-bold">סירה {idx + 1}</span>
-                         <span className="text-sm px-2 py-1 bg-slate-100 rounded border">{BoatTypeLabel[team.boatType]}</span>
+                         <span className="text-sm px-2 py-1 bg-slate-100 rounded border">{BoatTypeLabel[team.boatType as BoatType]}</span>
                     </div>
                     <div className="flex gap-4 pr-4">
-                        {team.members.map(m => (
+                        {team.members.map((m: Person) => (
                             <span key={m.id} className="text-lg font-medium">{m.name}</span>
                         ))}
                          {team.members.length === 0 && <span className="text-slate-400 italic">סירה ריקה</span>}

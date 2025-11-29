@@ -38,7 +38,7 @@ export interface UserPermission {
   allowedClubs: ClubID[];
 }
 
-export const APP_VERSION = '2.0.0'; // Major version bump for multi-tenancy
+export const APP_VERSION = '2.0.1'; // Patch version bump to force deployment
 
 // High contrast palette
 export const TEAM_COLORS = [
