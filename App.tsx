@@ -174,6 +174,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
         {children}
       </main>
+
+      <footer className="py-6 text-center text-xs text-slate-400 print:hidden border-t border-slate-100 mt-auto" dir="ltr">
+         Built by Shay Kalimi - @Shay.A.i
+      </footer>
     </div>
   );
 };
@@ -184,7 +188,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen bg-slate-100">
+        <div className="min-h-screen bg-slate-100 flex flex-col">
              <nav className="bg-slate-800 text-white p-4 shadow-md">
                  <div className="max-w-7xl mx-auto flex justify-between items-center">
                      <div className="font-bold text-xl hidden sm:block">אתגרים: ניהול על</div>
@@ -195,9 +199,12 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                      </div>
                  </div>
              </nav>
-             <main className="p-4">
+             <main className="p-4 flex-1 max-w-7xl mx-auto w-full">
                  {children}
              </main>
+             <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200" dir="ltr">
+                Built by Shay Kalimi - @Shay.A.i
+             </footer>
         </div>
     );
 };

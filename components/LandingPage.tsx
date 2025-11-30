@@ -19,52 +19,59 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex flex-col items-center justify-center p-4">
-      <div className="max-w-4xl w-full space-y-8 md:space-y-12">
-        
-        {/* Header / Logo */}
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-             <div className="bg-brand-600 text-white p-4 rounded-2xl shadow-lg">
-                <Waves size={48} />
-             </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100 flex flex-col items-center justify-between p-4">
+      <div className="w-full flex-1 flex flex-col items-center justify-center">
+          <div className="max-w-4xl w-full space-y-8 md:space-y-12">
+            
+            {/* Header / Logo */}
+            <div className="text-center space-y-4">
+              <div className="flex items-center justify-center gap-3">
+                 <div className="bg-brand-600 text-white p-4 rounded-2xl shadow-lg">
+                    <Waves size={48} />
+                 </div>
+              </div>
+              <h1 className="text-3xl md:text-5xl font-black text-slate-800 tracking-tight">
+                אתגרים - מערכת שיבוץ
+              </h1>
+              <p className="text-lg md:text-xl text-slate-500 font-light">בחר חוג לכניסה</p>
+            </div>
+
+            {/* Dynamic Club Selection Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+              {clubs.map((club) => (
+                  <button
+                    key={club.id}
+                    onClick={() => handleClubSelect(club.id)}
+                    className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl border-2 border-transparent hover:border-brand-500 transition-all duration-300 flex flex-col items-center gap-4"
+                  >
+                    <div className="w-16 h-16 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                      {club.label.includes('שייט') ? <Ship size={32} /> : 
+                       club.label.includes('קיאק') ? <Waves size={32} /> :
+                       <Anchor size={32} />}
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800 text-center">{club.label}</h2>
+                  </button>
+              ))}
+            </div>
+
+            {/* Footer Admin Link */}
+            <div className="text-center pt-8">
+               <button 
+                 onClick={handleSuperAdmin}
+                 className="text-slate-400 hover:text-slate-600 text-sm flex items-center justify-center gap-2 mx-auto transition-colors"
+               >
+                 <Settings size={14} />
+                 כניסה למנהל מערכת ראשי
+               </button>
+            </div>
+
           </div>
-          <h1 className="text-3xl md:text-5xl font-black text-slate-800 tracking-tight">
-            אתגרים - מערכת שיבוץ
-          </h1>
-          <p className="text-lg md:text-xl text-slate-500 font-light">בחר חוג לכניסה</p>
-        </div>
-
-        {/* Dynamic Club Selection Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-          {clubs.map((club) => (
-              <button
-                key={club.id}
-                onClick={() => handleClubSelect(club.id)}
-                className="group relative bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl border-2 border-transparent hover:border-brand-500 transition-all duration-300 flex flex-col items-center gap-4"
-              >
-                <div className="w-16 h-16 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                  {club.label.includes('שייט') ? <Ship size={32} /> : 
-                   club.label.includes('קיאק') ? <Waves size={32} /> :
-                   <Anchor size={32} />}
-                </div>
-                <h2 className="text-xl font-bold text-slate-800 text-center">{club.label}</h2>
-              </button>
-          ))}
-        </div>
-
-        {/* Footer Admin Link */}
-        <div className="text-center pt-8">
-           <button 
-             onClick={handleSuperAdmin}
-             className="text-slate-400 hover:text-slate-600 text-sm flex items-center justify-center gap-2 mx-auto transition-colors"
-           >
-             <Settings size={14} />
-             כניסה למנהל מערכת ראשי
-           </button>
-        </div>
-
       </div>
+      
+      {/* Credits Footer */}
+      <footer className="w-full py-4 text-center text-xs text-slate-400 opacity-60" dir="ltr">
+         Built by Shay Kalimi - @Shay.A.i
+      </footer>
     </div>
   );
 };
