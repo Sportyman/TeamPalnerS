@@ -1,23 +1,24 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAppStore, SUPER_ADMIN_EMAIL } from '../store';
+import { useAppStore, ROOT_ADMIN_EMAIL } from '../store';
 import { ShieldCheck, Mail, Zap, AlertTriangle, ArrowRight } from 'lucide-react';
-import { ClubLabel, APP_VERSION } from '../types';
+import { APP_VERSION } from '../types';
 
 export const Login: React.FC = () => {
-  const { login, user, activeClub } = useAppStore();
+  const { login, user, activeClub, clubs } = useAppStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [emailInput, setEmailInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   
   const isAdminLogin = searchParams.get('admin') === 'true';
+  const currentClubLabel = activeClub ? clubs.find(c => c.id === activeClub)?.label : '';
 
   // Watch for changes in user state and redirect
   useEffect(() => {
     if (user) {
-      if (user.email === SUPER_ADMIN_EMAIL && isAdminLogin) {
+      if (isAdminLogin && user.isAdmin) {
           navigate('/super-admin');
       } else {
           navigate('/app');
@@ -34,18 +35,13 @@ export const Login: React.FC = () => {
       } else {
           setErrorMsg(isAdminLogin 
             ? 'אימייל זה אינו מורשה כמנהל על.'
-            : `אימייל זה אינו מורשה לניהול ${activeClub ? ClubLabel[activeClub] : 'חוג זה'}. פנה למנהל המערכת.`);
+            : 'אימייל זה אינו מורשה לניהול חוג זה.');
       }
   };
 
   // Allow Super Admin shortcut for demo
   const handleDevLogin = () => {
-    if (isAdminLogin) {
-        login(SUPER_ADMIN_EMAIL);
-    } else {
-        // Mock a regular manager with permission (Assuming we added one for demo, or super admin works everywhere)
-        login(SUPER_ADMIN_EMAIL); 
-    }
+    login(ROOT_ADMIN_EMAIL);
   };
 
   return (
@@ -67,7 +63,7 @@ export const Login: React.FC = () => {
           </div>
           
           <h1 className="text-2xl font-bold text-slate-800">
-              {isAdminLogin ? 'ניהול מערכת (Super Admin)' : `כניסה ל${activeClub ? ClubLabel[activeClub] : 'מערכת'}`}
+              {isAdminLogin ? 'ניהול מערכת (Super Admin)' : `כניסה - ${currentClubLabel}`}
           </h1>
           <p className="text-slate-500 mt-2 text-sm">
               הזן את כתובת האימייל המורשית שלך
@@ -122,7 +118,7 @@ export const Login: React.FC = () => {
             className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium py-3 px-4 rounded-lg transition-colors"
         >
             <Zap size={16} className="text-yellow-400" />
-            כניסה מהירה כמנהל על (Dev)
+            כניסה מהירה (Dev Root)
         </button>
 
       </div>

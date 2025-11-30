@@ -80,7 +80,7 @@ export const PublicPairingView: React.FC = () => {
           <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-100 text-brand-600 rounded-full mb-4 print:hidden">
             <Ship size={24} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">שיבוצי אימון - אתגרים</h1>
+          <h1 className="text-2xl font-bold text-slate-800">שיבוצי אימון</h1>
           <div className="flex items-center justify-center gap-2 mt-2 text-slate-500">
             <Calendar size={16} />
             <span>{dateStr}</span>
@@ -91,8 +91,7 @@ export const PublicPairingView: React.FC = () => {
         <div className="space-y-4">
           {teams.map((team, idx) => {
             const colorClass = TEAM_COLORS[idx % TEAM_COLORS.length];
-            // Use custom label if available, fallback to default
-            const label = customLabels[team.boatType] || BoatTypeLabel[team.boatType as BoatType];
+            const label = customLabels[team.boatType] || BoatTypeLabel[team.boatType as BoatType] || team.boatType;
 
             return (
               <div key={team.id || idx} className={`rounded-xl shadow-sm border-2 overflow-hidden break-inside-avoid print:shadow-none print:border-slate-300 ${colorClass}`}>

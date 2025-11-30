@@ -1,139 +1,132 @@
+
 import React, { useState } from 'react';
-import { useAppStore, SUPER_ADMIN_EMAIL } from '../store';
-import { ClubID, ClubLabel } from '../types';
-import { Shield, Trash2, Plus, UserCheck } from 'lucide-react';
+import { useAppStore, ROOT_ADMIN_EMAIL } from '../store';
+import { Shield, Trash2, Plus, UserCheck, ArrowRight, Home, Waves } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const SuperAdminDashboard: React.FC = () => {
-  const { user, permissions, addPermission, removePermission } = useAppStore();
+  const { user, clubs, superAdmins, addClub, removeClub, addSuperAdmin, removeSuperAdmin } = useAppStore();
   const navigate = useNavigate();
   
   const [newEmail, setNewEmail] = useState('');
-  const [selectedClub, setSelectedClub] = useState<ClubID>(ClubID.KAYAK);
+  const [newClubName, setNewClubName] = useState('');
 
   // Security Check
-  if (!user || user.email.toLowerCase() !== SUPER_ADMIN_EMAIL.toLowerCase()) {
+  if (!user || !user.isAdmin) {
     return (
         <div className="p-8 text-center">
             <h1 className="text-2xl font-bold text-red-500">אין גישה</h1>
-            <p>עמוד זה מיועד למנהל העל בלבד.</p>
             <button onClick={() => navigate('/')} className="mt-4 text-brand-600 underline">חזור לדף הבית</button>
         </div>
     );
   }
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAddAdmin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmail) return;
-    addPermission(newEmail.toLowerCase().trim(), selectedClub);
+    addSuperAdmin(newEmail);
     setNewEmail('');
   };
 
+  const handleAddClub = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newClubName) return;
+      addClub(newClubName);
+      setNewClubName('');
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
-       <div className="flex items-center gap-4 border-b border-slate-200 pb-6">
-           <div className="bg-slate-800 p-3 rounded-full text-white">
-               <Shield size={32} />
+       <div className="flex items-center justify-between border-b border-slate-200 pb-6">
+           <div className="flex items-center gap-4">
+                <div className="bg-slate-800 p-3 rounded-full text-white">
+                    <Shield size={32} />
+                </div>
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-800">ניהול על (Super Admin)</h1>
+                    <p className="text-slate-500">ניהול חוגים ומנהלי מערכת</p>
+                </div>
            </div>
-           <div>
-               <h1 className="text-3xl font-bold text-slate-800">ניהול הרשאות מערכת</h1>
-               <p className="text-slate-500">הגדרת מנהלים לחוגים השונים</p>
-           </div>
+           <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-500 hover:text-brand-600">
+               <Home size={20} />
+               חזרה לדף הבית
+           </button>
        </div>
 
-       {/* Add Permission Form */}
+       {/* CLUBS MANAGEMENT */}
        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-           <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
-               <Plus size={20} className="text-brand-600" />
-               הוספת מנהל חדש
+           <h2 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-800">
+               <Waves size={24} className="text-brand-600" />
+               ניהול חוגים
            </h2>
-           <form onSubmit={handleAdd} className="flex flex-col md:flex-row gap-4 items-end">
-               <div className="flex-1 w-full">
-                   <label className="block text-sm font-medium text-slate-600 mb-1">כתובת אימייל (חשבון גוגל)</label>
-                   <input 
-                     type="email" 
-                     value={newEmail}
-                     onChange={e => setNewEmail(e.target.value)}
-                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                     placeholder="manager@gmail.com"
-                     dir="ltr"
-                     required
-                   />
-               </div>
-               <div className="w-full md:w-64">
-                   <label className="block text-sm font-medium text-slate-600 mb-1">חוג מורשה</label>
-                   <select 
-                     value={selectedClub} 
-                     onChange={e => setSelectedClub(e.target.value as ClubID)}
-                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
-                   >
-                       {Object.entries(ClubLabel).map(([key, label]) => (
-                           <option key={key} value={key}>{label}</option>
-                       ))}
-                   </select>
-               </div>
-               <button type="submit" className="w-full md:w-auto bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-bold">
-                   הוסף הרשאה
+           
+           <form onSubmit={handleAddClub} className="flex gap-4 mb-6">
+               <input 
+                 type="text" 
+                 value={newClubName}
+                 onChange={e => setNewClubName(e.target.value)}
+                 className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                 placeholder="שם החוג החדש..."
+               />
+               <button type="submit" className="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-lg font-bold">
+                   הוסף חוג
                </button>
            </form>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               {clubs.map(club => (
+                   <div key={club.id} className="p-4 border rounded-lg flex justify-between items-center bg-slate-50">
+                       <span className="font-bold text-lg">{club.label}</span>
+                       <button 
+                         onClick={() => { if(confirm('למחוק את החוג הזה?')) removeClub(club.id); }}
+                         className="text-slate-400 hover:text-red-500 p-2"
+                         title="מחק חוג"
+                       >
+                           <Trash2 size={18} />
+                       </button>
+                   </div>
+               ))}
+           </div>
        </div>
 
-       {/* Permissions List */}
-       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-           <table className="w-full text-right">
-               <thead className="bg-slate-50 text-slate-600 text-sm uppercase">
-                   <tr>
-                       <th className="px-6 py-3">אימייל</th>
-                       <th className="px-6 py-3">חוגים מורשים</th>
-                       <th className="px-6 py-3 text-left">פעולות</th>
-                   </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-100">
-                   {/* Super Admin Row (Immutable) */}
-                   <tr className="bg-amber-50/50">
-                       <td className="px-6 py-4 font-bold text-slate-800 flex items-center gap-2">
-                           <Shield size={16} className="text-amber-500" />
-                           {SUPER_ADMIN_EMAIL}
-                       </td>
-                       <td className="px-6 py-4 text-sm text-slate-500">גישה מלאה (Super Admin)</td>
-                       <td className="px-6 py-4"></td>
-                   </tr>
+       {/* ADMINS MANAGEMENT */}
+       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+           <h2 className="font-bold text-xl mb-6 flex items-center gap-2 text-slate-800">
+               <UserCheck size={24} className="text-brand-600" />
+               מנהלי מערכת נוספים
+           </h2>
+           
+           <form onSubmit={handleAddAdmin} className="flex gap-4 mb-6">
+               <input 
+                 type="email" 
+                 value={newEmail}
+                 onChange={e => setNewEmail(e.target.value)}
+                 className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand-500 outline-none"
+                 placeholder="כתובת אימייל..."
+                 dir="ltr"
+               />
+               <button type="submit" className="bg-slate-700 hover:bg-slate-800 text-white px-6 py-2 rounded-lg font-bold">
+                   הוסף מנהל
+               </button>
+           </form>
 
-                   {permissions.map((perm) => (
-                       <tr key={perm.email} className="hover:bg-slate-50">
-                           <td className="px-6 py-4 font-medium" dir="ltr">{perm.email}</td>
-                           <td className="px-6 py-4">
-                               <div className="flex gap-2">
-                                   {perm.allowedClubs.map(club => (
-                                       <span key={club} className="inline-flex items-center gap-1 bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs border border-slate-200">
-                                           {ClubLabel[club]}
-                                           <button 
-                                             onClick={() => removePermission(perm.email, club)}
-                                             className="hover:text-red-500 ml-1"
-                                             title="הסר הרשאה זו"
-                                           >
-                                               <Trash2 size={12} />
-                                           </button>
-                                       </span>
-                                   ))}
-                               </div>
-                           </td>
-                           <td className="px-6 py-4 text-left">
-                               <div className="text-xs text-slate-400">
-                                   משתמש רגיל
-                               </div>
-                           </td>
-                       </tr>
-                   ))}
-                   {permissions.length === 0 && (
-                       <tr>
-                           <td colSpan={3} className="px-6 py-8 text-center text-slate-400">
-                               לא הוגדרו מנהלים נוספים.
-                           </td>
-                       </tr>
-                   )}
-               </tbody>
-           </table>
+           <div className="space-y-2">
+               {superAdmins.map(email => (
+                   <div key={email} className="p-3 border-b flex justify-between items-center last:border-0">
+                       <span className="font-mono text-slate-700">{email}</span>
+                       {email.toLowerCase() !== ROOT_ADMIN_EMAIL.toLowerCase() ? (
+                           <button 
+                                onClick={() => removeSuperAdmin(email)}
+                                className="text-slate-400 hover:text-red-500"
+                           >
+                               <Trash2 size={16} />
+                           </button>
+                       ) : (
+                           <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">ראשי</span>
+                       )}
+                   </div>
+               ))}
+           </div>
        </div>
     </div>
   );

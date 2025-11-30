@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
-import { Team, Role, RoleLabel, BoatTypeLabel, BoatType, TEAM_COLORS, Person } from '../types';
+import { Team, Role, RoleLabel, BoatType, TEAM_COLORS, Person } from '../types';
 import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Dices, X, Plus, Trash2, Search, UserPlus } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
@@ -41,8 +41,14 @@ export const PairingBoard: React.FC = () => {
   const session = sessions[activeClub];
   const history = histories[activeClub];
   const future = futures[activeClub];
-  const settings = clubSettings[activeClub] || { boatLabels: { ...BoatTypeLabel } };
-  const boatLabels = settings.boatLabels;
+  const settings = clubSettings[activeClub] || { boatDefinitions: [] };
+  const boatDefinitions = settings.boatDefinitions;
+
+  // Helper map for labels
+  const boatLabels: Record<string, string> = {};
+  boatDefinitions.forEach(def => {
+      boatLabels[def.id] = def.label;
+  });
 
   if (!session) return <div>טוען נתונים...</div>;
 
@@ -125,7 +131,7 @@ export const PairingBoard: React.FC = () => {
 
     const payload = {
       date: new Date().toLocaleDateString('he-IL'),
-      labels: boatLabels, // Include Custom Labels
+      labels: boatLabels, // Include Custom Labels based on current definitions
       teams: cleanTeams
     };
 
@@ -424,13 +430,16 @@ export const PairingBoard: React.FC = () => {
                 <div className="p-3 border-b border-slate-100/50 bg-white/30 flex justify-between items-center">
                     <div className="flex gap-2 items-center">
                         <select
-                            value={team.boatType}
+                            value={team.boatType || ''}
                             onChange={(e) => updateTeamBoatType(team.id, e.target.value as BoatType)}
                             className="font-bold text-slate-800 text-lg bg-transparent border-none focus:ring-0 cursor-pointer outline-none hover:text-brand-600 transition-colors max-w-[130px]"
                         >
-                            {Object.entries(boatLabels).map(([key, label]) => (
-                                <option key={key} value={key}>{label}</option>
+                            {boatDefinitions.map(def => (
+                                <option key={def.id} value={def.id}>{def.label}</option>
                             ))}
+                            {!boatDefinitions.find(d => d.id === team.boatType) && team.boatType && (
+                                <option value={team.boatType}>{team.boatType}</option>
+                            )}
                         </select>
                         {hasWarnings && (
                         <div className="cursor-help group relative">
@@ -571,7 +580,7 @@ export const PairingBoard: React.FC = () => {
                 <div key={team.id} className="border-b border-slate-300 pb-2 break-inside-avoid page-break-inside-avoid">
                     <div className="flex items-baseline gap-4 mb-2">
                          <span className="text-xl font-bold">סירה {idx + 1}</span>
-                         <span className="text-sm px-2 py-1 bg-slate-100 rounded border">{boatLabels[team.boatType]}</span>
+                         <span className="text-sm px-2 py-1 bg-slate-100 rounded border">{boatLabels[team.boatType] || team.boatType}</span>
                     </div>
                     <div className="flex gap-4 pr-4">
                         {team.members.map((m: Person) => (

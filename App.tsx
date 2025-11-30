@@ -9,7 +9,7 @@ import { LandingPage } from './components/LandingPage';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { PublicPairingView } from './components/PublicPairingView';
 import { Waves, LayoutDashboard, Calendar, LogOut, Menu, X, Ship, Users, ClipboardCheck, Settings } from 'lucide-react';
-import { APP_VERSION, ClubLabel, ClubID } from './types';
+import { APP_VERSION } from './types';
 
 // Guard: Must be logged in AND have an active club selected
 const ProtectedAppRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -48,7 +48,7 @@ const NavLink: React.FC<{ to: string; icon: React.ReactNode; text: string; onCli
 }
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { logout, user, activeClub } = useAppStore();
+  const { logout, user, activeClub, clubs } = useAppStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -56,6 +56,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       logout();
       navigate('/');
   };
+
+  const currentClub = clubs.find(c => c.id === activeClub);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -85,9 +87,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                  title="דף הבית"
                >
-                 {activeClub === ClubID.SAILING ? <Ship className="text-sky-600" size={24} /> : <Waves className="text-brand-600" size={24} />}
+                 {activeClub === 'SAILING' ? <Ship className="text-sky-600" size={24} /> : <Waves className="text-brand-600" size={24} />}
                  <span className="font-bold text-lg hidden xs:inline text-slate-800">
-                     {activeClub ? ClubLabel[activeClub] : 'TeamPlaner'}
+                     {currentClub ? currentClub.label : 'TeamPlaner'}
                  </span>
                </button>
             </div>

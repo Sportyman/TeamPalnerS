@@ -1,40 +1,39 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
-import { BoatInventory, RoleLabel, Role, Person, ClubLabel, BoatType, BoatTypeLabel } from '../types';
-import { Ship, Users, CheckCircle2, Circle, ArrowLeft, ArrowRight, CheckSquare, Square, Save, RotateCcw, RotateCw, Star, Dices, X, Plus, Trash2, Search, UserPlus, ArrowDownAZ, ArrowUpNarrowWide, Shield } from 'lucide-react';
+import { BoatInventory, RoleLabel, Role } from '../types';
+import { Ship, Users, CheckCircle2, Circle, ArrowLeft, ArrowRight, CheckSquare, Square, RotateCcw, Shield, ArrowDownAZ, ArrowUpNarrowWide, Settings, Wind, Anchor } from 'lucide-react';
 import { PairingBoard } from './PairingBoard';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 type SortType = 'ROLE' | 'NAME' | 'RANK';
 
 export const SessionManager: React.FC = () => {
   const { 
     activeClub,
+    clubs,
     sessions,
     people,
     toggleAttendance, 
     setBulkAttendance, 
     updateInventory, 
-    updateDefaultInventory,
     runPairing,
     resetSession,
     clubSettings
   } = useAppStore();
 
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Safety check
   if (!activeClub) return null;
 
+  const currentClubLabel = clubs.find(c => c.id === activeClub)?.label;
   const currentSession = sessions[activeClub];
-  const settings = clubSettings[activeClub] || { boatLabels: { ...BoatTypeLabel } };
-  const boatLabels = settings.boatLabels;
-  
-  // Filter people for this club
+  const settings = clubSettings[activeClub] || { boatDefinitions: [] };
+  const boatDefinitions = settings.boatDefinitions;
   const clubPeople = people.filter(p => p.clubId === activeClub);
 
-  // Initialize step based on URL param OR existing session state
+  // Initialize step
   const [step, setStep] = useState<1 | 2 | 3>(3);
 
   useEffect(() => {
@@ -42,7 +41,6 @@ export const SessionManager: React.FC = () => {
     if (stepParam) {
         setStep(Number(stepParam) as 1 | 2 | 3);
     } else {
-        // Default logic: if no teams, start at 1
         if (currentSession.teams.length === 0) {
             setStep(1);
         } else {
@@ -51,26 +49,15 @@ export const SessionManager: React.FC = () => {
     }
   }, [searchParams, currentSession.teams.length]);
   
-  // Sort State
   const [sortBy, setSortBy] = useState<SortType>('ROLE');
-
-  // Initialize local inventory from current session or defaults
   const [localInventory, setLocalInventory] = useState<BoatInventory>(currentSession.inventory);
-  const [showSavedMsg, setShowSavedMsg] = useState(false);
 
-  // Sync local inventory if session inventory changes externally (or on mount)
   useEffect(() => {
     setLocalInventory(currentSession.inventory);
   }, [currentSession.inventory]);
 
-  const handleInventoryChange = (key: keyof BoatInventory, value: number) => {
+  const handleInventoryChange = (key: string, value: number) => {
     setLocalInventory(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleSaveDefault = () => {
-    updateDefaultInventory(localInventory);
-    setShowSavedMsg(true);
-    setTimeout(() => setShowSavedMsg(false), 2000);
   };
 
   const startPairing = () => {
@@ -88,16 +75,12 @@ export const SessionManager: React.FC = () => {
 
   const selectAll = () => {
     setBulkAttendance(clubPeople.map(p => p.id));
-    setTimeout(() => {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }, 100);
   };
 
   const clearAll = () => {
     setBulkAttendance([]);
   };
 
-  // Sorting Logic
   const getSortedPeople = () => {
     const sorted = [...clubPeople];
     switch (sortBy) {
@@ -117,44 +100,19 @@ export const SessionManager: React.FC = () => {
     }
   };
 
-  // Stats
   const presentVolunteers = clubPeople.filter(p => currentSession.presentPersonIds.includes(p.id) && p.role === Role.VOLUNTEER).length;
   const presentMembers = clubPeople.filter(p => currentSession.presentPersonIds.includes(p.id) && p.role === Role.MEMBER).length;
   const presentGuests = clubPeople.filter(p => currentSession.presentPersonIds.includes(p.id) && p.role === Role.GUEST).length;
-  
-  const totalBoats = localInventory.doubles + localInventory.singles + localInventory.privates;
+  const totalBoats = Object.values(localInventory).reduce((a: number, b: number) => a + b, 0);
 
   const getCardStyle = (role: Role, isPresent: boolean) => {
       const baseStyle = "flex items-center justify-between p-4 rounded-lg border text-right transition-all duration-200 select-none";
       if (!isPresent) return `${baseStyle} border-slate-200 hover:bg-slate-50 text-slate-600`;
-
       switch(role) {
-          case Role.VOLUNTEER:
-              return `${baseStyle} border-orange-500 bg-orange-50 ring-orange-500 text-orange-900 ring-1 shadow-sm`;
-          case Role.MEMBER:
-              return `${baseStyle} border-sky-500 bg-sky-50 ring-sky-500 text-sky-900 ring-1 shadow-sm`;
-          case Role.GUEST:
-              return `${baseStyle} border-emerald-500 bg-emerald-50 ring-emerald-500 text-emerald-900 ring-1 shadow-sm`;
-          default:
-              return `${baseStyle} border-slate-500 bg-slate-50`;
-      }
-  };
-
-  const getBadgeStyle = (role: Role) => {
-      switch(role) {
-          case Role.VOLUNTEER: return 'bg-orange-100 text-orange-700';
-          case Role.MEMBER: return 'bg-sky-100 text-sky-700';
-          case Role.GUEST: return 'bg-emerald-100 text-emerald-700';
-          default: return 'bg-slate-100 text-slate-700';
-      }
-  };
-
-  const getIconColor = (role: Role) => {
-       switch(role) {
-          case Role.VOLUNTEER: return 'text-orange-600';
-          case Role.MEMBER: return 'text-sky-600';
-          case Role.GUEST: return 'text-emerald-600';
-          default: return 'text-slate-600';
+          case Role.VOLUNTEER: return `${baseStyle} border-orange-500 bg-orange-50 ring-orange-500 text-orange-900 ring-1 shadow-sm`;
+          case Role.MEMBER: return `${baseStyle} border-sky-500 bg-sky-50 ring-sky-500 text-sky-900 ring-1 shadow-sm`;
+          case Role.GUEST: return `${baseStyle} border-emerald-500 bg-emerald-50 ring-emerald-500 text-emerald-900 ring-1 shadow-sm`;
+          default: return baseStyle;
       }
   };
 
@@ -162,19 +120,8 @@ export const SessionManager: React.FC = () => {
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center print:hidden">
-          <button 
-            onClick={() => setStep(2)}
-            className="text-sm text-brand-600 hover:underline flex items-center gap-1"
-          >
-            <ArrowRight size={16} /> חזרה להגדרות
-          </button>
-          
-          <button 
-            onClick={handleReset}
-            className="text-sm text-red-500 hover:bg-red-50 px-3 py-1 rounded flex items-center gap-1 transition-colors"
-          >
-            <RotateCcw size={14} /> איפוס אימון
-          </button>
+          <button onClick={() => setStep(2)} className="text-sm text-brand-600 hover:underline flex items-center gap-1"><ArrowRight size={16} /> חזרה להגדרות</button>
+          <button onClick={handleReset} className="text-sm text-red-500 hover:bg-red-50 px-3 py-1 rounded flex items-center gap-1 transition-colors"><RotateCcw size={14} /> איפוס אימון</button>
         </div>
         <PairingBoard />
       </div>
@@ -183,26 +130,14 @@ export const SessionManager: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {/* Progress Stepper */}
       <div className="flex items-center justify-center space-x-8 mb-8 flex-row-reverse">
-        <button 
-          onClick={() => setStep(1)}
-          className={`flex flex-col items-center transition-colors ${step === 1 ? 'text-brand-600' : 'text-slate-400 hover:text-slate-600'}`}
-        >
-          <div className="bg-white p-3 rounded-full border-2 border-current mb-2">
-            <Users size={24} />
-          </div>
+        <button onClick={() => setStep(1)} className={`flex flex-col items-center transition-colors ${step === 1 ? 'text-brand-600' : 'text-slate-400 hover:text-slate-600'}`}>
+          <div className="bg-white p-3 rounded-full border-2 border-current mb-2"><Users size={24} /></div>
           <span className="font-semibold text-sm">נוכחות</span>
         </button>
         <div className="w-16 h-0.5 bg-slate-200 mx-4" />
-        <button 
-          onClick={() => setStep(2)}
-          disabled={currentSession.presentPersonIds.length === 0}
-          className={`flex flex-col items-center transition-colors ${step === 2 ? 'text-brand-600' : 'text-slate-400 hover:text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'}`}
-        >
-          <div className="bg-white p-3 rounded-full border-2 border-current mb-2">
-            <Ship size={24} />
-          </div>
+        <button onClick={() => setStep(2)} disabled={currentSession.presentPersonIds.length === 0} className={`flex flex-col items-center transition-colors ${step === 2 ? 'text-brand-600' : 'text-slate-400 hover:text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed'}`}>
+          <div className="bg-white p-3 rounded-full border-2 border-current mb-2"><Ship size={24} /></div>
           <span className="font-semibold text-sm">ציוד</span>
         </button>
       </div>
@@ -213,61 +148,23 @@ export const SessionManager: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
                  <h2 className="text-2xl font-bold text-slate-800">מי הגיע היום?</h2>
-                 
                  <div className="flex flex-wrap gap-2 text-xs md:text-sm">
-                    <span className="text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-200 font-medium">
-                        מתנדבים: {presentVolunteers}
-                    </span>
-                    <span className="text-sky-700 bg-sky-50 px-2 py-1 rounded border border-sky-200 font-medium">
-                        חברים: {presentMembers}
-                    </span>
-                    {presentGuests > 0 && (
-                        <span className="text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 font-medium">
-                            אורחים: {presentGuests}
-                        </span>
-                    )}
-                     <span className="text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 font-medium">
-                        סה"כ: {currentSession.presentPersonIds.length}
-                    </span>
+                    <span className="text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-200 font-medium">מתנדבים: {presentVolunteers}</span>
+                    <span className="text-sky-700 bg-sky-50 px-2 py-1 rounded border border-sky-200 font-medium">חברים: {presentMembers}</span>
+                    <span className="text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 font-medium">סה"כ: {currentSession.presentPersonIds.length}</span>
                 </div>
                </div>
-
                 <div className="flex gap-2 text-sm self-end md:self-center shrink-0">
-                    <button 
-                        onClick={selectAll}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
-                    >
-                        <CheckSquare size={16} /> בחר הכל
-                    </button>
-                    <button 
-                        onClick={clearAll}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"
-                    >
-                        <Square size={16} /> נקה
-                    </button>
+                    <button onClick={selectAll} className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"><CheckSquare size={16} /> בחר הכל</button>
+                    <button onClick={clearAll} className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition-colors"><Square size={16} /> נקה</button>
                 </div>
             </div>
             
             <div className="flex items-center gap-2 text-sm text-slate-500">
                 <span className="font-medium">מיון לפי:</span>
-                <button 
-                    onClick={() => setSortBy('ROLE')}
-                    className={`px-3 py-1 rounded-full border flex items-center gap-1 transition-colors ${sortBy === 'ROLE' ? 'bg-brand-50 border-brand-200 text-brand-700' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
-                >
-                    <Shield size={14} /> תפקיד
-                </button>
-                <button 
-                     onClick={() => setSortBy('NAME')}
-                    className={`px-3 py-1 rounded-full border flex items-center gap-1 transition-colors ${sortBy === 'NAME' ? 'bg-brand-50 border-brand-200 text-brand-700' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
-                >
-                    <ArrowDownAZ size={14} /> שם
-                </button>
-                <button 
-                     onClick={() => setSortBy('RANK')}
-                    className={`px-3 py-1 rounded-full border flex items-center gap-1 transition-colors ${sortBy === 'RANK' ? 'bg-brand-50 border-brand-200 text-brand-700' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
-                >
-                    <ArrowUpNarrowWide size={14} /> דירוג
-                </button>
+                <button onClick={() => setSortBy('ROLE')} className={`px-3 py-1 rounded-full border ${sortBy === 'ROLE' ? 'bg-brand-50 border-brand-200 text-brand-700' : 'bg-white'}`}><Shield size={14} /> תפקיד</button>
+                <button onClick={() => setSortBy('NAME')} className={`px-3 py-1 rounded-full border ${sortBy === 'NAME' ? 'bg-brand-50 border-brand-200 text-brand-700' : 'bg-white'}`}><ArrowDownAZ size={14} /> שם</button>
+                <button onClick={() => setSortBy('RANK')} className={`px-3 py-1 rounded-full border ${sortBy === 'RANK' ? 'bg-brand-50 border-brand-200 text-brand-700' : 'bg-white'}`}><ArrowUpNarrowWide size={14} /> דירוג</button>
             </div>
           </div>
           
@@ -275,38 +172,20 @@ export const SessionManager: React.FC = () => {
             {getSortedPeople().map(person => {
               const isPresent = currentSession.presentPersonIds.includes(person.id);
               return (
-                <button
-                  key={person.id}
-                  onClick={() => toggleAttendance(person.id)}
-                  className={getCardStyle(person.role, isPresent)}
-                >
+                <button key={person.id} onClick={() => toggleAttendance(person.id)} className={getCardStyle(person.role, isPresent)}>
                   <div>
                     <div className={`font-bold ${isPresent ? '' : 'text-slate-800'}`}>{person.name}</div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${getBadgeStyle(person.role)}`}>
-                        {RoleLabel[person.role]}
-                      </span>
-                      <span className="text-xs opacity-70">רמה {person.rank}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${person.role === Role.VOLUNTEER ? 'bg-orange-100 text-orange-700' : 'bg-sky-100 text-sky-700'}`}>{RoleLabel[person.role]}</span>
                     </div>
                   </div>
-                  {isPresent ? (
-                    <CheckCircle2 className={getIconColor(person.role)} size={22} />
-                  ) : (
-                    <Circle className="text-slate-300" size={22} />
-                  )}
+                  {isPresent ? <CheckCircle2 className="text-brand-600" size={22} /> : <Circle className="text-slate-300" size={22} />}
                 </button>
               );
             })}
           </div>
-          
           <div className="mt-8 pt-4 border-t border-slate-100 flex justify-end">
-            <button
-              onClick={() => setStep(2)}
-              disabled={currentSession.presentPersonIds.length === 0}
-              className="w-full md:w-auto bg-brand-600 disabled:opacity-50 hover:bg-brand-500 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg shadow-brand-500/20"
-            >
-              הבא: ציוד <ArrowLeft size={16} />
-            </button>
+            <button onClick={() => setStep(2)} disabled={currentSession.presentPersonIds.length === 0} className="w-full md:w-auto bg-brand-600 disabled:opacity-50 hover:bg-brand-500 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg">הבא: ציוד <ArrowLeft size={16} /></button>
           </div>
         </div>
       )}
@@ -315,80 +194,49 @@ export const SessionManager: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 max-w-xl mx-auto">
           <div className="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
              <div>
-                <h2 className="text-2xl font-bold text-slate-800">ציוד זמין ({ClubLabel[activeClub]})</h2>
+                <h2 className="text-2xl font-bold text-slate-800">ציוד זמין ({currentClubLabel})</h2>
                 <div className="mt-1 flex items-center gap-2 text-sm text-slate-600">
-                    סה"כ כלי שיט:
-                    <span className="bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-bold">
-                        {totalBoats}
-                    </span>
+                    סה"כ כלי שיט: <span className="bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-bold">{totalBoats}</span>
                 </div>
              </div>
-            <button 
-              onClick={handleSaveDefault}
-              className="text-xs text-brand-600 hover:bg-brand-50 px-3 py-2 rounded-md flex items-center gap-1 transition-colors border border-brand-100"
-            >
-              <Save size={14} /> 
-              {showSavedMsg ? 'נשמר!' : 'שמור כברירת מחדל'}
-            </button>
+             <button onClick={() => navigate('/app/manage?view=INVENTORY')} className="text-xs text-brand-600 bg-brand-50 hover:bg-brand-100 px-3 py-2 rounded-lg flex items-center gap-1 border border-brand-100"><Settings size={14} /> הגדר ציוד קבוע</button>
           </div>
           
           <div className="space-y-6">
             <div className="flex justify-between items-center border-b border-slate-100 pb-2">
                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">סוג סירה</span>
-               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">כמות</span>
+               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">כמות לאימון זה</span>
             </div>
 
-            <div>
-              <label className="flex items-center justify-between mb-2">
-                <span className="font-medium text-slate-700">{boatLabels[BoatType.DOUBLE]}</span>
-                <span className="text-brand-600 font-bold text-xl">{localInventory.doubles}</span>
-              </label>
-              <input 
-                type="range" min="0" max="20" 
-                value={localInventory.doubles}
-                onChange={(e) => handleInventoryChange('doubles', Number(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
-              />
-            </div>
-            <div>
-              <label className="flex items-center justify-between mb-2">
-                <span className="font-medium text-slate-700">{boatLabels[BoatType.SINGLE]}</span>
-                <span className="text-brand-600 font-bold text-xl">{localInventory.singles}</span>
-              </label>
-              <input 
-                type="range" min="0" max="20" 
-                value={localInventory.singles}
-                onChange={(e) => handleInventoryChange('singles', Number(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
-              />
-            </div>
-            <div>
-              <label className="flex items-center justify-between mb-2">
-                <span className="font-medium text-slate-700">{boatLabels[BoatType.PRIVATE]}</span>
-                <span className="text-brand-600 font-bold text-xl">{localInventory.privates}</span>
-              </label>
-              <input 
-                type="range" min="0" max="10" 
-                value={localInventory.privates}
-                onChange={(e) => handleInventoryChange('privates', Number(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
-              />
-            </div>
+            {boatDefinitions.map(def => (
+                <div key={def.id}>
+                    <label className="flex items-center justify-between mb-2">
+                        <div className="flex flex-col">
+                            <span className="font-medium text-slate-700">{def.label}</span>
+                            <div className="flex gap-2">
+                                <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                                    {def.isStable ? <Anchor size={10} /> : <Wind size={10} />}
+                                    {def.isStable ? 'יציב' : 'מהיר'}
+                                </span>
+                                <span className="text-[10px] text-slate-400 border-r pr-2 mr-1">קיבולת: {def.capacity}</span>
+                            </div>
+                        </div>
+                        <span className="text-brand-600 font-bold text-xl">{localInventory[def.id] || 0}</span>
+                    </label>
+                    <input type="range" min="0" max="20" value={localInventory[def.id] || 0} onChange={(e) => handleInventoryChange(def.id, Number(e.target.value))} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-brand-600" />
+                </div>
+            ))}
+            
+            {boatDefinitions.length === 0 && (
+                <div className="text-center py-4 text-slate-400 text-sm bg-slate-50 rounded-lg border border-slate-100 border-dashed">
+                    לא הוגדר ציוד לחוג זה. <button onClick={() => navigate('/app/manage?view=INVENTORY')} className="text-brand-600 underline mt-1">לחץ להוספה</button>
+                </div>
+            )}
           </div>
           
           <div className="mt-8 flex justify-between">
-             <button
-              onClick={() => setStep(1)}
-              className="text-slate-500 hover:text-slate-800 px-4 py-2"
-            >
-              חזור
-            </button>
-            <button
-              onClick={startPairing}
-              className="bg-brand-600 hover:bg-brand-500 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-brand-500/30 flex items-center gap-2 transform transition hover:scale-105"
-            >
-              צור שיבוצים <ArrowLeft size={16} />
-            </button>
+             <button onClick={() => setStep(1)} className="text-slate-500 hover:text-slate-800 px-4 py-2">חזור</button>
+             <button onClick={startPairing} disabled={boatDefinitions.length === 0} className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white px-8 py-3 rounded-lg font-bold shadow-lg flex items-center gap-2 transform transition hover:scale-105">צור שיבוצים <ArrowLeft size={16} /></button>
           </div>
         </div>
       )}
