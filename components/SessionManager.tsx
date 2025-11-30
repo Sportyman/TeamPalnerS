@@ -29,6 +29,18 @@ export const SessionManager: React.FC = () => {
 
   const currentClubLabel = clubs.find(c => c.id === activeClub)?.label;
   const currentSession = sessions[activeClub];
+  
+  // Safety check: if session data is missing (e.g. after club deletion), show error or redirect
+  if (!currentSession) {
+      return (
+          <div className="p-8 text-center text-slate-500">
+              <h2 className="text-xl font-bold mb-2">שגיאת נתונים</h2>
+              <p>נתוני האימון לחוג זה חסרים. נסה לרענן את העמוד או לבחור חוג אחר.</p>
+              <button onClick={() => navigate('/')} className="mt-4 text-brand-600 underline">חזור לדף הבית</button>
+          </div>
+      );
+  }
+
   const settings = clubSettings[activeClub] || { boatDefinitions: [] };
   const boatDefinitions = settings.boatDefinitions;
   const clubPeople = people.filter(p => p.clubId === activeClub);

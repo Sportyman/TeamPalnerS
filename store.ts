@@ -170,6 +170,8 @@ export const useAppStore = create<AppState>()(
       }),
 
       removeClub: (id) => set(state => {
+          // IMPORTANT: If we are deleting the active club, reset activeClub to null
+          // to trigger the protected route redirect and prevent zombie state.
           const isActive = state.activeClub === id;
           return {
               clubs: state.clubs.filter(c => c.id !== id),
@@ -468,9 +470,6 @@ export const useAppStore = create<AppState>()(
 
         const newTeams = currentSession.teams.map(t => {
             if (t.id === teamId) {
-                // Remove if existing in other teams? No, assume user knows what they do or logic handles it. 
-                // But typically we should ensure uniqueness? 
-                // For now, simple add.
                 return { ...t, members: [...t.members, person] };
             }
             return t;

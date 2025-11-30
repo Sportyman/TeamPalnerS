@@ -11,11 +11,18 @@ import { PublicPairingView } from './components/PublicPairingView';
 import { Waves, LayoutDashboard, Calendar, LogOut, Menu, X, Ship, Users, ClipboardCheck, Settings } from 'lucide-react';
 import { APP_VERSION } from './types';
 
-// Guard: Must be logged in AND have an active club selected
+// Guard: Must be logged in AND have an active club selected AND the club must exist
 const ProtectedAppRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, activeClub } = useAppStore();
+  const { user, activeClub, clubs } = useAppStore();
+  
   if (!user) return <Navigate to="/" />;
-  if (!activeClub) return <Navigate to="/" />;
+  
+  // Critical Fix: Ensure the activeClub actually exists in the clubs list
+  const clubExists = clubs.some(c => c.id === activeClub);
+  if (!activeClub || !clubExists) {
+      return <Navigate to="/" />;
+  }
+  
   return <>{children}</>;
 };
 

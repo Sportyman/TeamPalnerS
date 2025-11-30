@@ -33,8 +33,13 @@ export const Dashboard: React.FC = () => {
     else setView('MENU');
   }, [searchParams]);
 
+  // Safety check
+  if (!activeClub) {
+      return null;
+  }
+
   const currentClubLabel = clubs.find(c => c.id === activeClub)?.label || '';
-  const currentSettings = activeClub && clubSettings[activeClub] ? clubSettings[activeClub] : { boatDefinitions: [] };
+  const currentSettings = clubSettings[activeClub] ? clubSettings[activeClub] : { boatDefinitions: [] };
   
   const [isAddingBoat, setIsAddingBoat] = useState(false);
   const [newBoatName, setNewBoatName] = useState('');
