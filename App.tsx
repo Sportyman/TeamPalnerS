@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from './store';
@@ -7,7 +8,7 @@ import { Login } from './components/Login';
 import { LandingPage } from './components/LandingPage';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { PublicPairingView } from './components/PublicPairingView';
-import { Waves, LayoutDashboard, Calendar, LogOut, Menu, X, Ship } from 'lucide-react';
+import { Waves, LayoutDashboard, Calendar, LogOut, Menu, X, Ship, Users, ClipboardCheck, Settings } from 'lucide-react';
 import { APP_VERSION, ClubLabel, ClubID } from './types';
 
 // Guard: Must be logged in AND have an active club selected
@@ -28,7 +29,7 @@ const SuperAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
 const NavLink: React.FC<{ to: string; icon: React.ReactNode; text: string; onClick?: () => void }> = ({ to, icon, text, onClick }) => {
   const location = useLocation();
-  const isActive = location.pathname === to;
+  const isActive = location.pathname + location.search === to;
   
   return (
     <Link 
@@ -72,8 +73,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </button>
               
               <div className="hidden md:flex space-x-4 space-x-reverse">
-                <NavLink to="/app" icon={<Calendar size={18} />} text="אימון חדש" />
-                <NavLink to="/app/manage" icon={<LayoutDashboard size={18} />} text="משתתפים" />
+                <NavLink to="/app" icon={<Calendar size={18} />} text="אימון ראשי" />
+                <NavLink to="/app/manage?view=PEOPLE" icon={<Users size={18} />} text="משתתפים" />
               </div>
             </div>
 
@@ -108,18 +109,46 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         {isMenuOpen && (
           <div className="md:hidden bg-white border-b border-slate-200 animate-in slide-in-from-top-5 relative z-50">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+              <div className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  אימון ושיבוץ
+              </div>
               <NavLink 
-                to="/app" 
-                icon={<Calendar size={18} />} 
-                text="אימון חדש" 
+                to="/app?step=1" 
+                icon={<ClipboardCheck size={18} />} 
+                text="בדיקת נוכחות" 
                 onClick={() => setIsMenuOpen(false)}
               />
+               <NavLink 
+                to="/app?step=2" 
+                icon={<Ship size={18} />} 
+                text="הגדרת ציוד" 
+                onClick={() => setIsMenuOpen(false)}
+              />
+               <NavLink 
+                to="/app" 
+                icon={<Calendar size={18} />} 
+                text="אימון נוכחי" 
+                onClick={() => setIsMenuOpen(false)}
+              />
+              
+              <div className="border-t border-slate-100 my-2"></div>
+              
+              <div className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  ניהול
+              </div>
               <NavLink 
-                to="/app/manage" 
-                icon={<LayoutDashboard size={18} />} 
+                to="/app/manage?view=PEOPLE" 
+                icon={<Users size={18} />} 
                 text="ניהול משתתפים" 
                 onClick={() => setIsMenuOpen(false)}
               />
+               <NavLink 
+                to="/app/manage?view=INVENTORY" 
+                icon={<Settings size={18} />} 
+                text="ניהול ציוד ומלאי" 
+                onClick={() => setIsMenuOpen(false)}
+              />
+
               <div className="pt-2 border-t border-slate-100 mt-2 flex justify-between items-center px-3 py-2">
                  <div className="text-xs text-slate-400">
                     {user?.email}

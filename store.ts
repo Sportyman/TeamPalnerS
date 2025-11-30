@@ -605,7 +605,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'etgarim-storage',
-      version: 6.0, 
+      version: 8.0, 
       migrate: (persistedState: any, version: number) => {
         // Migration logic to ensure data consistency
         const defaultSettings = { boatLabels: { ...BoatTypeLabel } };

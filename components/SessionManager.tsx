@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { BoatInventory, RoleLabel, Role, Person, ClubLabel, BoatType, BoatTypeLabel } from '../types';
-import { Ship, Users, CheckCircle2, Circle, ArrowLeft, ArrowRight, CheckSquare, Square, Save, RotateCcw, ArrowDownAZ, ArrowUpNarrowWide, Shield } from 'lucide-react';
+import { Ship, Users, CheckCircle2, Circle, ArrowLeft, ArrowRight, CheckSquare, Square, Save, RotateCcw, RotateCw, Star, Dices, X, Plus, Trash2, Search, UserPlus, ArrowDownAZ, ArrowUpNarrowWide, Shield } from 'lucide-react';
 import { PairingBoard } from './PairingBoard';
+import { useSearchParams } from 'react-router-dom';
 
 type SortType = 'ROLE' | 'NAME' | 'RANK';
 
@@ -21,6 +22,8 @@ export const SessionManager: React.FC = () => {
     clubSettings
   } = useAppStore();
 
+  const [searchParams] = useSearchParams();
+
   // Safety check
   if (!activeClub) return null;
 
@@ -31,8 +34,22 @@ export const SessionManager: React.FC = () => {
   // Filter people for this club
   const clubPeople = people.filter(p => p.clubId === activeClub);
 
-  // Initialize step based on whether teams exist
-  const [step, setStep] = useState<1 | 2 | 3>(() => currentSession.teams.length > 0 ? 3 : 1);
+  // Initialize step based on URL param OR existing session state
+  const [step, setStep] = useState<1 | 2 | 3>(3);
+
+  useEffect(() => {
+    const stepParam = searchParams.get('step');
+    if (stepParam) {
+        setStep(Number(stepParam) as 1 | 2 | 3);
+    } else {
+        // Default logic: if no teams, start at 1
+        if (currentSession.teams.length === 0) {
+            setStep(1);
+        } else {
+            setStep(3);
+        }
+    }
+  }, [searchParams, currentSession.teams.length]);
   
   // Sort State
   const [sortBy, setSortBy] = useState<SortType>('ROLE');

@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { Role, RoleLabel, Person, BoatType, ClubLabel, Gender, GenderLabel, BoatInventory, BoatTypeLabel } from '../types';
-import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar, PenTool } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 type ViewMode = 'MENU' | 'PEOPLE' | 'INVENTORY';
 
@@ -22,7 +22,16 @@ export const Dashboard: React.FC = () => {
     } = useAppStore();
   
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [view, setView] = useState<ViewMode>('MENU');
+
+  // Handle URL view param
+  useEffect(() => {
+    const viewParam = searchParams.get('view');
+    if (viewParam === 'PEOPLE') setView('PEOPLE');
+    else if (viewParam === 'INVENTORY') setView('INVENTORY');
+    else setView('MENU');
+  }, [searchParams]);
 
   // Inventory State
   const currentDefaults = activeClub ? defaultInventories[activeClub] : { doubles: 0, singles: 0, privates: 0 };
@@ -130,7 +139,7 @@ export const Dashboard: React.FC = () => {
     updateDefaultInventory(tempInventory);
     updateClubSettings({ boatLabels: tempLabels });
     alert('הגדרות הציוד נשמרו בהצלחה!');
-    setView('MENU');
+    navigate('/app/manage'); // Go back to menu
   };
 
   const getRankColor = (rank: number) => {
@@ -149,10 +158,10 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleRestore = () => {
-    if(confirm('האם לשחזר נתוני דמו? זה ימחק שינויים מקומיים.')) { 
+    if(confirm('האם לשחזר נתוני דמו? זה ימחק שינויים מקומיים וייטען מחדש את העמוד.')) { 
         restoreDemoData(); 
-        // Force reload to ensure everything is fresh
-        window.location.reload(); 
+        // Force reload to ensure everything is fresh and clean state
+        setTimeout(() => window.location.reload(), 500);
     }
   };
 
@@ -179,7 +188,7 @@ export const Dashboard: React.FC = () => {
                   </button>
 
                   <button 
-                    onClick={() => setView('PEOPLE')}
+                    onClick={() => navigate('/app/manage?view=PEOPLE')}
                     className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-brand-300 transition-all group flex flex-col items-center gap-4"
                   >
                       <div className="bg-brand-50 text-brand-600 p-4 rounded-full group-hover:scale-110 transition-transform">
@@ -192,7 +201,7 @@ export const Dashboard: React.FC = () => {
                   </button>
 
                   <button 
-                    onClick={() => setView('INVENTORY')}
+                    onClick={() => navigate('/app/manage?view=INVENTORY')}
                     className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-brand-300 transition-all group flex flex-col items-center gap-4"
                   >
                       <div className="bg-orange-50 text-orange-600 p-4 rounded-full group-hover:scale-110 transition-transform">
@@ -209,7 +218,7 @@ export const Dashboard: React.FC = () => {
                      className="col-span-1 md:col-span-2 mt-4 text-slate-400 hover:text-red-500 text-sm flex items-center justify-center gap-2"
                   >
                       <Database size={16} />
-                       שחזר נתוני דמו (איפוס)
+                       שחזר נתוני דמו (איפוס מלא)
                   </button>
               </div>
           </div>
@@ -220,7 +229,7 @@ export const Dashboard: React.FC = () => {
   if (view === 'INVENTORY') {
       return (
           <div className="max-w-2xl mx-auto py-6 px-4">
-              <button onClick={() => setView('MENU')} className="flex items-center gap-2 text-slate-500 hover:text-brand-600 mb-6 font-medium">
+              <button onClick={() => navigate('/app/manage')} className="flex items-center gap-2 text-slate-500 hover:text-brand-600 mb-6 font-medium">
                   <ArrowRight size={20} /> חזרה לתפריט
               </button>
               
@@ -231,21 +240,30 @@ export const Dashboard: React.FC = () => {
                 </div>
                 
                 <p className="text-sm text-slate-500 mb-6 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  כאן ניתן להגדיר את כמויות הציוד הקבועות לכל אימון, וגם לשנות את שמות כלי השיט (למשל "סירה" במקום "קיאק").
+                  כאן ניתן להגדיר את **השמות** של כלי השיט (למשל, להחליף "קיאק" ב"סירה") ואת **הכמויות** הקבועות לכל אימון.
                 </p>
 
                 <div className="space-y-8">
                     {/* Double */}
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                         <div className="flex justify-between items-center mb-3">
-                             <input 
-                               type="text" 
-                               value={tempLabels[BoatType.DOUBLE]}
-                               onChange={(e) => setTempLabels({...tempLabels, [BoatType.DOUBLE]: e.target.value})}
-                               className="font-bold text-lg bg-white border border-slate-200 rounded px-2 py-1 focus:ring-2 focus:ring-brand-500 outline-none w-48"
-                             />
-                             <span className="bg-brand-600 text-white px-3 py-1 rounded-lg font-bold text-lg">{tempInventory.doubles}</span>
+                         <div className="mb-3">
+                             <label className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                                 <PenTool size={12}/> שם הכלי (ניתן לעריכה)
+                             </label>
+                             <div className="flex justify-between items-center gap-4">
+                                <input 
+                                    type="text" 
+                                    value={tempLabels[BoatType.DOUBLE]}
+                                    onChange={(e) => setTempLabels({...tempLabels, [BoatType.DOUBLE]: e.target.value})}
+                                    className="font-bold text-lg bg-white border border-slate-200 rounded px-3 py-2 focus:ring-2 focus:ring-brand-500 outline-none w-full shadow-sm"
+                                    placeholder="שם כלי השיט"
+                                />
+                                <div className="bg-brand-600 text-white px-4 py-2 rounded-lg font-bold text-xl min-w-[3rem] text-center">
+                                    {tempInventory.doubles}
+                                </div>
+                             </div>
                          </div>
+                         <label className="text-xs font-bold text-slate-400 uppercase mb-1">כמות במלאי</label>
                          <input 
                             type="range" min="0" max="20" 
                             value={tempInventory.doubles}
@@ -257,15 +275,23 @@ export const Dashboard: React.FC = () => {
 
                     {/* Single */}
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                         <div className="flex justify-between items-center mb-3">
-                             <input 
-                               type="text" 
-                               value={tempLabels[BoatType.SINGLE]}
-                               onChange={(e) => setTempLabels({...tempLabels, [BoatType.SINGLE]: e.target.value})}
-                               className="font-bold text-lg bg-white border border-slate-200 rounded px-2 py-1 focus:ring-2 focus:ring-brand-500 outline-none w-48"
-                             />
-                             <span className="bg-brand-600 text-white px-3 py-1 rounded-lg font-bold text-lg">{tempInventory.singles}</span>
+                         <div className="mb-3">
+                            <label className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                                 <PenTool size={12}/> שם הכלי (ניתן לעריכה)
+                             </label>
+                             <div className="flex justify-between items-center gap-4">
+                                <input 
+                                    type="text" 
+                                    value={tempLabels[BoatType.SINGLE]}
+                                    onChange={(e) => setTempLabels({...tempLabels, [BoatType.SINGLE]: e.target.value})}
+                                    className="font-bold text-lg bg-white border border-slate-200 rounded px-3 py-2 focus:ring-2 focus:ring-brand-500 outline-none w-full shadow-sm"
+                                />
+                                <div className="bg-brand-600 text-white px-4 py-2 rounded-lg font-bold text-xl min-w-[3rem] text-center">
+                                    {tempInventory.singles}
+                                </div>
+                             </div>
                          </div>
+                         <label className="text-xs font-bold text-slate-400 uppercase mb-1">כמות במלאי</label>
                          <input 
                             type="range" min="0" max="20" 
                             value={tempInventory.singles}
@@ -277,15 +303,23 @@ export const Dashboard: React.FC = () => {
 
                     {/* Private */}
                     <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                         <div className="flex justify-between items-center mb-3">
-                             <input 
-                               type="text" 
-                               value={tempLabels[BoatType.PRIVATE]}
-                               onChange={(e) => setTempLabels({...tempLabels, [BoatType.PRIVATE]: e.target.value})}
-                               className="font-bold text-lg bg-white border border-slate-200 rounded px-2 py-1 focus:ring-2 focus:ring-brand-500 outline-none w-48"
-                             />
-                             <span className="bg-brand-600 text-white px-3 py-1 rounded-lg font-bold text-lg">{tempInventory.privates}</span>
+                         <div className="mb-3">
+                            <label className="text-xs font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+                                 <PenTool size={12}/> שם הכלי (ניתן לעריכה)
+                             </label>
+                             <div className="flex justify-between items-center gap-4">
+                                <input 
+                                    type="text" 
+                                    value={tempLabels[BoatType.PRIVATE]}
+                                    onChange={(e) => setTempLabels({...tempLabels, [BoatType.PRIVATE]: e.target.value})}
+                                    className="font-bold text-lg bg-white border border-slate-200 rounded px-3 py-2 focus:ring-2 focus:ring-brand-500 outline-none w-full shadow-sm"
+                                />
+                                <div className="bg-brand-600 text-white px-4 py-2 rounded-lg font-bold text-xl min-w-[3rem] text-center">
+                                    {tempInventory.privates}
+                                </div>
+                             </div>
                          </div>
+                         <label className="text-xs font-bold text-slate-400 uppercase mb-1">כמות במלאי</label>
                          <input 
                             type="range" min="0" max="10" 
                             value={tempInventory.privates}
@@ -297,7 +331,7 @@ export const Dashboard: React.FC = () => {
 
                 <div className="mt-10 pt-6 border-t flex justify-end gap-3">
                     <button 
-                        onClick={() => setView('MENU')}
+                        onClick={() => navigate('/app/manage')}
                         className="px-6 py-2 text-slate-600 hover:bg-slate-50 rounded-lg font-medium"
                     >
                         ביטול
@@ -317,7 +351,7 @@ export const Dashboard: React.FC = () => {
   // --- PEOPLE VIEW ---
   return (
     <div className="space-y-6 pb-20">
-      <button onClick={() => setView('MENU')} className="flex items-center gap-2 text-slate-500 hover:text-brand-600 font-medium px-1">
+      <button onClick={() => navigate('/app/manage')} className="flex items-center gap-2 text-slate-500 hover:text-brand-600 font-medium px-1">
            <ArrowRight size={20} /> חזרה לתפריט
       </button>
 
