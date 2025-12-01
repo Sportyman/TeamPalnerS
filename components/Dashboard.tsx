@@ -457,6 +457,7 @@ export const Dashboard: React.FC = () => {
 
   const getRoleBadgeStyle = (role: Role) => {
     switch (role) {
+      case Role.INSTRUCTOR: return 'bg-purple-100 text-purple-700'; // New
       case Role.VOLUNTEER: return 'bg-orange-100 text-orange-700';
       case Role.MEMBER: return 'bg-sky-100 text-sky-700';
       case Role.GUEST: return 'bg-emerald-100 text-emerald-700';

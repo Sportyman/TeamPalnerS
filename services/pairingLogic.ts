@@ -88,7 +88,7 @@ export const generateSmartPairings = (
       clusters.push({
           id: `cluster-${root.id}`,
           members: clusterMembers,
-          hasVolunteer: clusterMembers.some(m => m.role === Role.VOLUNTEER),
+          hasVolunteer: clusterMembers.some(m => m.role === Role.VOLUNTEER || m.role === Role.INSTRUCTOR),
           totalRank: clusterMembers.reduce((sum, m) => sum + m.rank, 0),
           roles: clusterMembers.map(m => m.role),
           size: clusterMembers.length
@@ -96,7 +96,7 @@ export const generateSmartPairings = (
   }
 
   // Separate Clusters into queues
-  // 1. Captains: Clusters containing at least one Volunteer
+  // 1. Captains: Clusters containing at least one Volunteer or Instructor
   // 2. Passengers: Clusters with only Members/Guests
   let captainClusters = clusters.filter(c => c.hasVolunteer);
   let passengerClusters = clusters.filter(c => !c.hasVolunteer);
@@ -241,7 +241,7 @@ export const generateSmartPairings = (
              const warnings: string[] = [];
              
              // Analyze Team
-             const hasVol = teamMembers.some(m => m.role === Role.VOLUNTEER);
+             const hasVol = teamMembers.some(m => m.role === Role.VOLUNTEER || m.role === Role.INSTRUCTOR);
              
              if (boatDef.capacity > 1 && !hasVol) {
                  warnings.push('צוות ללא מתנדב');
@@ -349,7 +349,7 @@ export const generateSmartPairings = (
                    }
 
                    const warnings: string[] = [];
-                   if (!teamMembers.some(m => m.role === Role.VOLUNTEER)) warnings.push('צוות ללא מתנדב');
+                   if (!teamMembers.some(m => m.role === Role.VOLUNTEER || m.role === Role.INSTRUCTOR)) warnings.push('צוות ללא מתנדב');
                    if (teamMembers.length === 1 && boatDef.capacity > 1) warnings.push('חותר בודד בסירה גדולה');
                    
                    teams.push({
@@ -388,4 +388,3 @@ export const generateSmartPairings = (
 
   return teams;
 };
-    

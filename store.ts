@@ -32,10 +32,10 @@ const createInventoryFromDefs = (defs: BoatDefinition[]): BoatInventory => {
 
 // --- INITIAL PEOPLE (DUMMY) ---
 const INITIAL_PEOPLE: Person[] = [
-    // Kayak - Volunteers
-    { id: 'k1', clubId: 'KAYAK', name: 'דורון שמעוני', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 5, phone: '050-1111111', notes: 'מדריך ראשי', tags: ['מדריך'] },
+    // Kayak - Volunteers & Instructors
+    { id: 'k1', clubId: 'KAYAK', name: 'דורון שמעוני', gender: Gender.MALE, role: Role.INSTRUCTOR, rank: 5, phone: '050-1111111', notes: 'מדריך ראשי', tags: ['מדריך', 'סמכות מקצועית'] },
     { id: 'k2', clubId: 'KAYAK', name: 'ענת לביא', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 4, phone: '050-2222222', tags: [] },
-    { id: 'k3', clubId: 'KAYAK', name: 'יואב גל', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 5, phone: '050-3333333', tags: ['חובש'] },
+    { id: 'k3', clubId: 'KAYAK', name: 'יואב גל', gender: Gender.MALE, role: Role.INSTRUCTOR, rank: 5, phone: '050-3333333', tags: ['חובש', 'מדריך'] },
     { id: 'k4', clubId: 'KAYAK', name: 'מיכל אהרוני', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 3, phone: '050-4444444', tags: [] },
     // Kayak - Members
     { id: 'k5', clubId: 'KAYAK', name: 'דניאל אברהמי', gender: Gender.MALE, role: Role.MEMBER, rank: 1, phone: '052-5555555', notes: 'צריך תמיכה בגב', tags: ['מנוף'] },
@@ -46,7 +46,7 @@ const INITIAL_PEOPLE: Person[] = [
     { id: 'k10', clubId: 'KAYAK', name: 'נועה קירל', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2, phone: '053-1234567', tags: [] },
 
     // Sailing - Volunteers
-    { id: 's1', clubId: 'SAILING', name: 'גיורא איילנד', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 5, phone: '054-1111111', tags: ['סקיפר'] },
+    { id: 's1', clubId: 'SAILING', name: 'גיורא איילנד', gender: Gender.MALE, role: Role.INSTRUCTOR, rank: 5, phone: '054-1111111', tags: ['סקיפר'] },
     { id: 's2', clubId: 'SAILING', name: 'תמר זנדברג', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 4, phone: '054-2222222', tags: ['סקיפר'] },
     { id: 's3', clubId: 'SAILING', name: 'עופר שלח', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 3, phone: '054-3333333', tags: ['איש צוות'] },
     { id: 's4', clubId: 'SAILING', name: 'מרב מיכאלי', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 5, phone: '054-4444444', tags: ['סקיפר'], genderConstraint: { type: 'FEMALE', strength: 'PREFER' } },
@@ -657,10 +657,13 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'etgarim-storage',
-      version: 17.0, // Bump for new ConstraintStrength Enum
+      version: 18.0, // Bump to force update
       migrate: (persistedState: any, version: number) => {
         let state = persistedState as AppState;
-        if (version < 17) {
+        if (version < 18) {
+            // No specific logic needed, just forcing re-hydration of mock data via restoreDemoData if needed,
+            // or simply relying on the fact that existing people will stay, but new mock data won't overwrite unless restore is called.
+            // To be safe, let's reset dirty flag.
              state.pairingDirty = false;
         }
         return state;

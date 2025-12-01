@@ -127,7 +127,7 @@ export const SessionManager: React.FC = () => {
         case 'ROLE':
         default:
             return sorted.sort((a, b) => {
-                const roleOrder = { [Role.VOLUNTEER]: 0, [Role.MEMBER]: 1, [Role.GUEST]: 2 };
+                const roleOrder = { [Role.INSTRUCTOR]: -1, [Role.VOLUNTEER]: 0, [Role.MEMBER]: 1, [Role.GUEST]: 2 };
                 if (roleOrder[a.role] !== roleOrder[b.role]) {
                     return roleOrder[a.role] - roleOrder[b.role];
                 }
@@ -136,7 +136,7 @@ export const SessionManager: React.FC = () => {
     }
   };
 
-  const presentVolunteers = clubPeople.filter(p => currentSession.presentPersonIds.includes(p.id) && p.role === Role.VOLUNTEER).length;
+  const presentVolunteers = clubPeople.filter(p => currentSession.presentPersonIds.includes(p.id) && (p.role === Role.VOLUNTEER || p.role === Role.INSTRUCTOR)).length;
   const presentMembers = clubPeople.filter(p => currentSession.presentPersonIds.includes(p.id) && p.role === Role.MEMBER).length;
   const presentGuests = clubPeople.filter(p => currentSession.presentPersonIds.includes(p.id) && p.role === Role.GUEST).length;
   const totalBoats = Object.values(localInventory).reduce((a: number, b: number) => a + b, 0);
@@ -145,6 +145,7 @@ export const SessionManager: React.FC = () => {
       const baseStyle = "flex items-center justify-between p-4 rounded-lg border text-right transition-all duration-200 select-none";
       if (!isPresent) return `${baseStyle} border-slate-200 hover:bg-slate-50 text-slate-600`;
       switch(role) {
+          case Role.INSTRUCTOR: return `${baseStyle} border-purple-500 bg-purple-50 ring-purple-500 text-purple-900 ring-1 shadow-sm`;
           case Role.VOLUNTEER: return `${baseStyle} border-orange-500 bg-orange-50 ring-orange-500 text-orange-900 ring-1 shadow-sm`;
           case Role.MEMBER: return `${baseStyle} border-sky-500 bg-sky-50 ring-sky-500 text-sky-900 ring-1 shadow-sm`;
           case Role.GUEST: return `${baseStyle} border-emerald-500 bg-emerald-50 ring-emerald-500 text-emerald-900 ring-1 shadow-sm`;
@@ -205,7 +206,7 @@ export const SessionManager: React.FC = () => {
                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 w-full">
                  <h2 className="text-2xl font-bold text-slate-800">מי הגיע היום?</h2>
                  <div className="flex flex-wrap gap-2 text-xs md:text-sm">
-                    <span className="text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-200 font-medium">מתנדבים: {presentVolunteers}</span>
+                    <span className="text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-200 font-medium">מתנדבים/מדריכים: {presentVolunteers}</span>
                     <span className="text-sky-700 bg-sky-50 px-2 py-1 rounded border border-sky-200 font-medium">חברים: {presentMembers}</span>
                     <span className="text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200 font-medium">סה"כ: {currentSession.presentPersonIds.length}</span>
                 </div>
@@ -239,7 +240,7 @@ export const SessionManager: React.FC = () => {
                         )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${person.role === Role.VOLUNTEER ? 'bg-orange-100 text-orange-700' : 'bg-sky-100 text-sky-700'}`}>{getRoleLabel(person.role, person.gender)}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${person.role === Role.INSTRUCTOR ? 'bg-purple-100 text-purple-700' : person.role === Role.VOLUNTEER ? 'bg-orange-100 text-orange-700' : 'bg-sky-100 text-sky-700'}`}>{getRoleLabel(person.role, person.gender)}</span>
                     </div>
                   </div>
                   {isPresent ? <CheckCircle2 className="text-brand-600" size={24} /> : <Circle className="text-slate-300" size={24} />}

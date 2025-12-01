@@ -1,5 +1,6 @@
 
 export enum Role {
+  INSTRUCTOR = 'INSTRUCTOR', // New Role
   VOLUNTEER = 'VOLUNTEER',
   MEMBER = 'MEMBER',
   GUEST = 'GUEST',
@@ -8,6 +9,7 @@ export enum Role {
 // Helper to get gender-aware label
 export const getRoleLabel = (role: Role, gender: Gender): string => {
     const labels: Record<Role, { [key in Gender]: string }> = {
+        [Role.INSTRUCTOR]: { [Gender.MALE]: 'מדריך', [Gender.FEMALE]: 'מדריכה' },
         [Role.VOLUNTEER]: { [Gender.MALE]: 'מתנדב', [Gender.FEMALE]: 'מתנדבת' },
         [Role.MEMBER]: { [Gender.MALE]: 'חבר', [Gender.FEMALE]: 'חברה' },
         [Role.GUEST]: { [Gender.MALE]: 'אורח', [Gender.FEMALE]: 'אורחת' },
@@ -85,7 +87,7 @@ export interface UserPermission {
   allowedClubs: ClubID[];
 }
 
-export const APP_VERSION = '2.9.1';
+export const APP_VERSION = '2.9.2';
 
 export const TEAM_COLORS = [
   'bg-blue-50 border-blue-200',      

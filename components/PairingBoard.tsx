@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { Team, Role, getRoleLabel, BoatType, TEAM_COLORS, Person } from '../types';
-import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Shuffle, X, Plus, Trash2, Search, UserPlus, Lock, ShieldCheck, Heart, UserX, Shield } from 'lucide-react';
+import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Shuffle, X, Plus, Trash2, Search, UserPlus, Lock, ShieldCheck, Heart, UserX, Shield, AlertOctagon } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 // Pairing Board Component
@@ -200,6 +200,7 @@ export const PairingBoard: React.FC = () => {
 
   const getMemberStyle = (role: Role) => {
     switch (role) {
+      case Role.INSTRUCTOR: return 'bg-purple-50 border-purple-200';
       case Role.VOLUNTEER: return 'bg-orange-50 border-orange-200';
       case Role.MEMBER: return 'bg-sky-50 border-sky-200';
       case Role.GUEST: return 'bg-emerald-50 border-emerald-200';
@@ -213,6 +214,13 @@ export const PairingBoard: React.FC = () => {
     return 'text-green-500';
   };
 
+  // --- Inventory Calculation ---
+  const inventoryStatus = boatDefinitions.map(def => {
+      const used = session.teams.filter(t => t.boatType === def.id).length;
+      const total = session.inventory[def.id] || 0;
+      return { ...def, used, total };
+  });
+
   // --- Logic for Add Member Modal ---
   const allClubPeople = people.filter(p => p.clubId === activeClub);
   
@@ -225,7 +233,7 @@ export const PairingBoard: React.FC = () => {
 
   const filteredPeople = allClubPeople.filter(p => p.name.includes(memberSearch));
 
-  // --- Logic for displaying active constraints ---
+  // --- Logic for active constraints ---
   const getActiveConstraintBadges = (member: Person, teamMembers: Person[]) => {
       const badges = [];
 
@@ -419,6 +427,22 @@ export const PairingBoard: React.FC = () => {
               </div>
           </div>
       )}
+      
+      {/* INVENTORY STATUS BAR */}
+      <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center justify-center print:hidden">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">סטטוס מלאי:</span>
+          {inventoryStatus.map(stat => {
+              const isOverLimit = stat.used > stat.total;
+              return (
+                  <div key={stat.id} className="flex items-center gap-1.5 text-sm">
+                      <span className="text-slate-700 font-medium">{stat.label}:</span>
+                      <span className={`font-mono font-bold px-1.5 rounded ${isOverLimit ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600'}`}>
+                          {stat.used}/{stat.total}
+                      </span>
+                  </div>
+              );
+          })}
+      </div>
 
       {/* Screen Header */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 print:hidden">
@@ -499,14 +523,22 @@ export const PairingBoard: React.FC = () => {
         <DragDropContext onDragEnd={onDragEnd}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {session.teams.map((team: Team, index: number) => {
-                const hasWarnings = team.warnings && team.warnings.length > 0;
+                const boatDef = boatDefinitions.find(d => d.id === team.boatType);
+                const capacity = boatDef?.capacity || 99;
+                const isOverCapacity = team.members.length > capacity;
+                
+                const hasWarnings = (team.warnings && team.warnings.length > 0) || isOverCapacity;
                 const colorClass = TEAM_COLORS[index % TEAM_COLORS.length];
-                const containerClass = hasWarnings ? 'border-amber-300 bg-amber-50' : colorClass;
+                
+                // Dynamic border class for errors
+                let containerClass = colorClass;
+                if (isOverCapacity) containerClass = 'border-red-500 bg-red-50 ring-2 ring-red-200';
+                else if (hasWarnings) containerClass = 'border-amber-300 bg-amber-50';
                 
                 return (
                 <div 
                 key={team.id}
-                className={`rounded-xl shadow-sm border-2 flex flex-col overflow-hidden ${containerClass}`}
+                className={`rounded-xl shadow-sm border-2 flex flex-col overflow-hidden transition-all duration-300 ${containerClass}`}
                 >
                 {/* Header with Boat Selector */}
                 <div className="p-3 border-b border-slate-100/50 bg-white/30 flex justify-between items-center">
@@ -526,10 +558,11 @@ export const PairingBoard: React.FC = () => {
                         </select>
                         {hasWarnings && (
                         <div className="cursor-help group relative">
-                          <div className="text-amber-500">
+                          <div className={isOverCapacity ? 'text-red-500 animate-pulse' : 'text-amber-500'}>
                             <AlertTriangle size={20} />
                           </div>
-                          <div className="absolute top-full right-0 mt-2 w-48 p-2 bg-amber-100 text-amber-900 text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          <div className="absolute top-full right-0 mt-2 w-48 p-2 bg-white border border-slate-200 text-slate-800 text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                             {isOverCapacity && <div className="text-red-600 font-bold mb-1">חריגה מקיבולת ({team.members.length}/{capacity})</div>}
                              {team.warnings?.join(', ')}
                           </div>
                         </div>
@@ -560,8 +593,8 @@ export const PairingBoard: React.FC = () => {
 
                 {/* Warnings Text Banner */}
                 {hasWarnings && (
-                    <div className="px-3 py-1 bg-amber-100 text-amber-800 text-sm border-b border-amber-200">
-                    {team.warnings?.join(', ')}
+                    <div className={`px-3 py-1 text-sm border-b ${isOverCapacity ? 'bg-red-100 text-red-800 border-red-200' : 'bg-amber-100 text-amber-800 border-amber-200'}`}>
+                    {isOverCapacity ? `חריגה מקיבולת (${team.members.length}/${capacity})` : team.warnings?.join(', ')}
                     </div>
                 )}
 

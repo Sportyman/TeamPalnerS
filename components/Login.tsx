@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppStore, ROOT_ADMIN_EMAIL } from '../store';
-import { ShieldCheck, Mail, Zap, AlertTriangle, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Mail, Zap, AlertTriangle, ArrowRight, Loader2 } from 'lucide-react';
 import { APP_VERSION } from '../types';
 
 export const Login: React.FC = () => {
@@ -11,6 +11,7 @@ export const Login: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [emailInput, setEmailInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
   const isAdminLogin = searchParams.get('admin') === 'true';
   const currentClubLabel = activeClub ? clubs.find(c => c.id === activeClub)?.label : '';
@@ -18,11 +19,15 @@ export const Login: React.FC = () => {
   // Watch for changes in user state and redirect
   useEffect(() => {
     if (user) {
-      if (isAdminLogin && user.isAdmin) {
-          navigate('/super-admin');
-      } else {
-          navigate('/app');
-      }
+      // Small delay to allow the "Success" spinner to be seen and prevent flickering
+      const timer = setTimeout(() => {
+          if (isAdminLogin && user.isAdmin) {
+              navigate('/super-admin');
+          } else {
+              navigate('/app');
+          }
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [user, navigate, isAdminLogin]);
 
@@ -31,21 +36,35 @@ export const Login: React.FC = () => {
       const success = login(emailInput.trim());
       
       if (success) {
-          // Success handled by useEffect
+          setIsRedirecting(true); // Trigger loading view
       } else {
           setErrorMsg(isAdminLogin 
             ? 'אימייל זה אינו מורשה כמנהל על.'
             : 'אימייל זה אינו מורשה לניהול חוג זה.');
+            setIsRedirecting(false);
       }
   };
 
   // Allow Super Admin shortcut for demo
   const handleDevLogin = () => {
-    login(ROOT_ADMIN_EMAIL);
+    const success = login(ROOT_ADMIN_EMAIL);
+    if (success) setIsRedirecting(true);
   };
 
+  if (isRedirecting) {
+      return (
+          <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+              <div className="bg-white p-8 rounded-2xl shadow-xl flex flex-col items-center animate-in fade-in zoom-in duration-300">
+                  <Loader2 size={48} className="text-brand-600 animate-spin mb-4" />
+                  <h2 className="text-xl font-bold text-slate-800">מתחבר למערכת...</h2>
+                  <p className="text-slate-500 text-sm mt-2">אנא המתן</p>
+              </div>
+          </div>
+      );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4 animate-in fade-in duration-500">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 space-y-6">
         
         {/* Header */}
