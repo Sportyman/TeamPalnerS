@@ -40,8 +40,8 @@ const INITIAL_PEOPLE: Person[] = [
     // Kayak - Members
     { id: 'k5', clubId: 'KAYAK', name: 'דניאל אברהמי', gender: Gender.MALE, role: Role.MEMBER, rank: 1, phone: '052-5555555', notes: 'צריך תמיכה בגב', tags: ['מנוף'] },
     { id: 'k6', clubId: 'KAYAK', name: 'רונית כהן', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2, phone: '052-6666666', tags: [] },
-    { id: 'k7', clubId: 'KAYAK', name: 'אבי לוי', gender: Gender.MALE, role: Role.MEMBER, rank: 3, phone: '052-7777777', tags: [] },
-    { id: 'k8', clubId: 'KAYAK', name: 'שרה נתניהו', gender: Gender.FEMALE, role: Role.MEMBER, rank: 1, phone: '052-8888888', tags: ['מנוף', 'שומרת נגיעה'] },
+    { id: 'k7', clubId: 'KAYAK', name: 'אבי לוי', gender: Gender.MALE, role: Role.MEMBER, rank: 3, phone: '052-7777777', tags: [], mustPairWith: ['k9'], constraintStrength: 'PREFER' },
+    { id: 'k8', clubId: 'KAYAK', name: 'שרה נתניהו', gender: Gender.FEMALE, role: Role.MEMBER, rank: 1, phone: '052-8888888', tags: ['מנוף', 'שומרת נגיעה'], genderPreference: true, constraintStrength: 'MUST' },
     { id: 'k9', clubId: 'KAYAK', name: 'יוסי בניון', gender: Gender.MALE, role: Role.MEMBER, rank: 4, phone: '052-9999999', tags: ['חותר עצמאי'] },
     { id: 'k10', clubId: 'KAYAK', name: 'נועה קירל', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2, phone: '053-1234567', tags: [] },
 
@@ -49,10 +49,10 @@ const INITIAL_PEOPLE: Person[] = [
     { id: 's1', clubId: 'SAILING', name: 'גיורא איילנד', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 5, phone: '054-1111111', tags: ['סקיפר'] },
     { id: 's2', clubId: 'SAILING', name: 'תמר זנדברג', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 4, phone: '054-2222222', tags: ['סקיפר'] },
     { id: 's3', clubId: 'SAILING', name: 'עופר שלח', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 3, phone: '054-3333333', tags: ['איש צוות'] },
-    { id: 's4', clubId: 'SAILING', name: 'מרב מיכאלי', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 5, phone: '054-4444444', tags: ['סקיפר'] },
+    { id: 's4', clubId: 'SAILING', name: 'מרב מיכאלי', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 5, phone: '054-4444444', tags: ['סקיפר'], genderPreference: true },
     // Sailing - Members
     { id: 's5', clubId: 'SAILING', name: 'נורית פלד', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2, phone: '055-5555555', tags: [] },
-    { id: 's6', clubId: 'SAILING', name: 'אמיר חצרוני', gender: Gender.MALE, role: Role.MEMBER, rank: 3, phone: '055-6666666', tags: [] },
+    { id: 's6', clubId: 'SAILING', name: 'אמיר חצרוני', gender: Gender.MALE, role: Role.MEMBER, rank: 3, phone: '055-6666666', tags: [], cannotPairWith: ['s8'], constraintStrength: 'MUST' },
     { id: 's7', clubId: 'SAILING', name: 'גלית גוטמן', gender: Gender.FEMALE, role: Role.MEMBER, rank: 1, phone: '055-7777777', tags: ['כסא גלגלים'] },
     { id: 's8', clubId: 'SAILING', name: 'אייל ברקוביץ', gender: Gender.MALE, role: Role.MEMBER, rank: 4, phone: '055-8888888', tags: ['חותר חזק'] },
     { id: 's9', clubId: 'SAILING', name: 'אופירה אסייג', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2, phone: '055-9999999', tags: [] },
@@ -649,16 +649,12 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'etgarim-storage',
-      version: 12.0, // Force migration to load new people
+      version: 13.0, // Force migration to load constraints demo data
       migrate: (persistedState: any, version: number) => {
-        // Simple migration to ensure people list is populated if it was empty or old
         let state = persistedState as AppState;
-        
-        // If coming from old version, re-inject initial people if list is small or empty to ensure demo data
-        if (version < 12) {
-             state.people = INITIAL_PEOPLE; // Reset people to new demo data
+        if (version < 13) {
+             state.people = INITIAL_PEOPLE; 
         }
-        
         return state;
       },
       partialize: (state) => ({

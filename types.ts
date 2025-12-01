@@ -66,7 +66,7 @@ export interface UserPermission {
   allowedClubs: ClubID[];
 }
 
-export const APP_VERSION = '2.5.0';
+export const APP_VERSION = '2.6.0';
 
 export const TEAM_COLORS = [
   'bg-blue-50 border-blue-200',      
@@ -99,6 +99,14 @@ export interface Person {
   role: Role;
   rank: number;
   notes?: string;
+  
+  // New Pairing Constraints
+  preferredBoatType?: string; // Optional boat ID constraint
+  
+  genderPreference?: boolean; // If true, prefers same gender
+  mustPairWith?: string[]; // IDs of people they want to be with (Whitelist)
+  cannotPairWith?: string[]; // IDs of people they cannot be with (Blacklist)
+  constraintStrength?: 'MUST' | 'PREFER'; // Default is PREFER
 }
 
 export interface Team {

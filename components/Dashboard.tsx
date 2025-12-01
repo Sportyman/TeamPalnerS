@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { Role, RoleLabel, Person, Gender, GenderLabel, BoatDefinition } from '../types';
-import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar, Plus, Anchor, Wind, Users2 } from 'lucide-react';
+import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar, Plus, Anchor, Wind, Users2, ShieldAlert, CheckSquare, HelpCircle, AlertOctagon } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 type ViewMode = 'MENU' | 'PEOPLE' | 'INVENTORY';
@@ -71,18 +71,44 @@ export const Dashboard: React.FC = () => {
   const [newTags, setNewTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [phoneError, setPhoneError] = useState('');
+  const [newPreferredBoat, setNewPreferredBoat] = useState<string>('');
+
+  // Constraint States (Add Mode)
+  const [newGenderPref, setNewGenderPref] = useState(false);
+  const [newStrength, setNewStrength] = useState<'MUST' | 'PREFER'>('PREFER');
+  const [newMustPair, setNewMustPair] = useState<string[]>([]);
+  const [newCannotPair, setNewCannotPair] = useState<string[]>([]);
+  const [partnerSelectId, setPartnerSelectId] = useState(''); // For the dropdown
 
   const clubPeople = people.filter(p => p.clubId === activeClub);
+  const boatDefinitions = currentSettings.boatDefinitions;
 
   // --- People Handlers ---
   const validatePhone = (phone: string) => {
-      if (!phone) return true; // Optional? Or make it required. Let's say optional but must be valid if present.
-      // If user wants it mandatory, we check if (!phone) return false;
-      // Requirement: "Every user needs an option for phone number... ensure it is standard (05X-XXXXXXX)"
+      if (!phone) return true; // Optional
       if (!PHONE_REGEX.test(phone)) {
           return false;
       }
       return true;
+  };
+
+  const resetAddForm = () => {
+    setNewName('');
+    setNewGender(Gender.MALE);
+    setNewPhone('');
+    setNewNotes('');
+    setNewRole(Role.VOLUNTEER);
+    setNewRank(3);
+    setNewTags([]);
+    setTagInput('');
+    setPhoneError('');
+    setNewPreferredBoat('');
+    setNewGenderPref(false);
+    setNewStrength('PREFER');
+    setNewMustPair([]);
+    setNewCannotPair([]);
+    setPartnerSelectId('');
+    setIsAddFormOpen(false); 
   };
 
   const handleAdd = (e: React.FormEvent) => {
@@ -103,17 +129,14 @@ export const Dashboard: React.FC = () => {
       rank: newRank,
       notes: newNotes,
       tags: newTags,
+      preferredBoatType: newPreferredBoat || undefined,
+      genderPreference: newGenderPref,
+      constraintStrength: newStrength,
+      mustPairWith: newMustPair,
+      cannotPairWith: newCannotPair
     });
-    setNewName('');
-    setNewGender(Gender.MALE);
-    setNewPhone('');
-    setNewNotes('');
-    setNewRole(Role.VOLUNTEER);
-    setNewRank(3);
-    setNewTags([]);
-    setTagInput('');
-    setPhoneError('');
-    setIsAddFormOpen(false); 
+    
+    resetAddForm();
   };
 
   const handleAddTag = (e: React.KeyboardEvent) => {
@@ -162,6 +185,57 @@ export const Dashboard: React.FC = () => {
       setEditingPerson(null);
       setPhoneError('');
     }
+  };
+
+  // --- Partner Constraint Handlers (Generic for Add/Edit) ---
+  const handleAddPartnerConstraint = (
+      type: 'MUST' | 'CANNOT', 
+      personIdToAdd: string, 
+      isEditMode: boolean
+  ) => {
+      if (!personIdToAdd) return;
+      
+      if (isEditMode && editingPerson) {
+          if (type === 'MUST') {
+              const current = editingPerson.mustPairWith || [];
+              if (!current.includes(personIdToAdd)) {
+                   setEditingPerson({ ...editingPerson, mustPairWith: [...current, personIdToAdd] });
+              }
+          } else {
+              const current = editingPerson.cannotPairWith || [];
+              if (!current.includes(personIdToAdd)) {
+                   setEditingPerson({ ...editingPerson, cannotPairWith: [...current, personIdToAdd] });
+              }
+          }
+      } else {
+          // Add Mode
+          if (type === 'MUST') {
+              if (!newMustPair.includes(personIdToAdd)) setNewMustPair([...newMustPair, personIdToAdd]);
+          } else {
+              if (!newCannotPair.includes(personIdToAdd)) setNewCannotPair([...newCannotPair, personIdToAdd]);
+          }
+      }
+      setPartnerSelectId('');
+  };
+
+  const handleRemovePartnerConstraint = (
+      type: 'MUST' | 'CANNOT', 
+      personIdToRemove: string, 
+      isEditMode: boolean
+  ) => {
+      if (isEditMode && editingPerson) {
+          if (type === 'MUST') {
+              setEditingPerson({ ...editingPerson, mustPairWith: (editingPerson.mustPairWith || []).filter(id => id !== personIdToRemove) });
+          } else {
+              setEditingPerson({ ...editingPerson, cannotPairWith: (editingPerson.cannotPairWith || []).filter(id => id !== personIdToRemove) });
+          }
+      } else {
+          if (type === 'MUST') {
+              setNewMustPair(newMustPair.filter(id => id !== personIdToRemove));
+          } else {
+              setNewCannotPair(newCannotPair.filter(id => id !== personIdToRemove));
+          }
+      }
   };
 
   // --- Inventory Draft Handlers ---
@@ -235,6 +309,68 @@ export const Dashboard: React.FC = () => {
         restoreDemoData(); 
         setTimeout(() => window.location.reload(), 500);
     }
+  };
+
+  // Helper component for constraint selector
+  const ConstraintSelector = ({ 
+      title, 
+      currentList, 
+      onAdd, 
+      onRemove, 
+      allPeople, 
+      excludeId,
+      type 
+  }: { 
+      title: string, 
+      currentList: string[], 
+      onAdd: (id: string) => void, 
+      onRemove: (id: string) => void,
+      allPeople: Person[],
+      excludeId?: string,
+      type: 'MUST' | 'CANNOT'
+  }) => {
+      const [localSelect, setLocalSelect] = useState('');
+      const candidates = allPeople
+          .filter(p => p.id !== excludeId) // Not self
+          .filter(p => !currentList.includes(p.id)); // Not already selected
+
+      return (
+          <div className={`p-3 rounded-lg border ${type === 'MUST' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+              <div className="text-xs font-bold mb-2 flex items-center gap-1">
+                  {type === 'MUST' ? <Users2 size={14} className="text-green-600"/> : <ShieldAlert size={14} className="text-red-600"/>}
+                  <span className={type === 'MUST' ? 'text-green-800' : 'text-red-800'}>{title}</span>
+              </div>
+              <div className="flex gap-2 mb-2">
+                  <select 
+                      className="flex-1 text-sm border-slate-300 rounded p-1"
+                      value={localSelect}
+                      onChange={e => setLocalSelect(e.target.value)}
+                  >
+                      <option value="">בחר משתתף...</option>
+                      {candidates.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <button 
+                      type="button" 
+                      onClick={() => { onAdd(localSelect); setLocalSelect(''); }}
+                      disabled={!localSelect}
+                      className="bg-white border px-2 rounded text-xs font-bold disabled:opacity-50"
+                  >
+                      הוסף
+                  </button>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                  {currentList.map(pid => {
+                      const pName = allPeople.find(p => p.id === pid)?.name || 'לא ידוע';
+                      return (
+                          <span key={pid} className="bg-white border px-2 py-0.5 rounded text-xs flex items-center gap-1 shadow-sm">
+                              {pName} 
+                              <button type="button" onClick={() => onRemove(pid)}><X size={10} /></button>
+                          </span>
+                      )
+                  })}
+              </div>
+          </div>
+      );
   };
 
   // --- Render Views ---
@@ -497,6 +633,10 @@ export const Dashboard: React.FC = () => {
                                             <Tag size={8} /> {tag}
                                         </span>
                                     ))}
+                                    {/* Constraint Indicators */}
+                                    {person.genderPreference && <span className="text-[10px] bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded border border-pink-100" title="העדפה מגדרית">מגדר</span>}
+                                    {(person.mustPairWith?.length || 0) > 0 && <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded border border-green-100" title="התניות חיוב">חובה</span>}
+                                    {(person.cannotPairWith?.length || 0) > 0 && <span className="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-100" title="התניות שלילה">שלילה</span>}
                                 </div>
                             </td>
                             <td className="p-4 hidden md:table-cell">
@@ -540,7 +680,7 @@ export const Dashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b bg-slate-50 flex justify-between items-center">
                 <h3 className="font-bold text-lg">הוספת משתתף</h3>
-                <button onClick={() => setIsAddFormOpen(false)}><X className="text-slate-400 hover:text-slate-600" /></button>
+                <button onClick={resetAddForm}><X className="text-slate-400 hover:text-slate-600" /></button>
             </div>
             <form onSubmit={handleAdd} className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -581,6 +721,81 @@ export const Dashboard: React.FC = () => {
                         <label className="block text-sm font-bold text-slate-700 mb-1">דירוג (1-5)</label>
                         <input type="number" min="1" max="5" value={newRank} onChange={e => setNewRank(Number(e.target.value))} className="w-full border rounded-lg p-2" />
                     </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">כלי שיט מועדף/מחייב</label>
+                    <select 
+                        value={newPreferredBoat} 
+                        onChange={e => setNewPreferredBoat(e.target.value)}
+                        className="w-full border rounded-lg p-2"
+                    >
+                        <option value="">ללא העדפה (הכל מתאים)</option>
+                        {boatDefinitions.map(def => (
+                            <option key={def.id} value={def.id}>{def.label}</option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-slate-400 mt-1">השיבוץ האוטומטי ישתדל לשבץ בכלי זה בלבד</p>
+                </div>
+
+                {/* ADVANCED CONSTRAINTS SECTION */}
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mt-2">
+                     <div className="flex items-center gap-2 mb-2 text-sm font-bold text-slate-800">
+                         <AlertOctagon size={16} className="text-brand-600"/> הגדרות שיבוץ מתקדמות
+                     </div>
+                     <div className="space-y-3">
+                         {/* Strength Toggle */}
+                         <div className="flex items-center justify-between bg-white p-2 rounded border">
+                             <div className="flex flex-col">
+                                 <span className="text-xs font-bold text-slate-700">עוצמת התניות</span>
+                                 <span className="text-[10px] text-slate-500">
+                                     {newStrength === 'MUST' ? 'חובה קריטית (עלול למנוע שיבוץ)' : 'העדפה בלבד (גמיש)'}
+                                 </span>
+                             </div>
+                             <button 
+                                type="button" 
+                                onClick={() => setNewStrength(prev => prev === 'MUST' ? 'PREFER' : 'MUST')}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${newStrength === 'MUST' ? 'bg-red-500' : 'bg-brand-500'}`}
+                             >
+                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${newStrength === 'MUST' ? 'translate-x-1' : 'translate-x-6'}`} />
+                             </button>
+                         </div>
+                         <div className="text-[10px] text-slate-500 bg-blue-50 p-2 rounded text-right">
+                             <HelpCircle size={10} className="inline ml-1"/>
+                             טיפ: מומלץ להשתמש ב"חובה" רק למקרים קריטיים (כמו מלווה רפואי). שימוש ב"העדפה" מאפשר למערכת גמישות רבה יותר.
+                         </div>
+
+                         {/* Gender Pref */}
+                         <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                             <input 
+                                type="checkbox" 
+                                checked={newGenderPref}
+                                onChange={e => setNewGenderPref(e.target.checked)}
+                                className="w-4 h-4 text-brand-600"
+                             />
+                             העדפה לשיבוץ עם בני אותו מין בלבד
+                         </label>
+
+                         {/* Partner Constraints */}
+                         <div className="grid grid-cols-2 gap-2">
+                             <ConstraintSelector 
+                                title="חייב להיות עם" 
+                                type="MUST"
+                                currentList={newMustPair}
+                                onAdd={(id) => handleAddPartnerConstraint('MUST', id, false)}
+                                onRemove={(id) => handleRemovePartnerConstraint('MUST', id, false)}
+                                allPeople={clubPeople}
+                             />
+                             <ConstraintSelector 
+                                title="לא לשבץ עם" 
+                                type="CANNOT"
+                                currentList={newCannotPair}
+                                onAdd={(id) => handleAddPartnerConstraint('CANNOT', id, false)}
+                                onRemove={(id) => handleRemovePartnerConstraint('CANNOT', id, false)}
+                                allPeople={clubPeople}
+                             />
+                         </div>
+                     </div>
                 </div>
 
                 <div>
@@ -655,6 +870,85 @@ export const Dashboard: React.FC = () => {
                         <label className="block text-sm font-bold text-slate-700 mb-1">דירוג (1-5)</label>
                         <input type="number" min="1" max="5" value={editingPerson.rank} onChange={e => setEditingPerson({...editingPerson, rank: Number(e.target.value)})} className="w-full border rounded-lg p-2" />
                     </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">כלי שיט מועדף/מחייב</label>
+                    <select 
+                        value={editingPerson.preferredBoatType || ''} 
+                        onChange={e => setEditingPerson({...editingPerson, preferredBoatType: e.target.value})}
+                        className="w-full border rounded-lg p-2"
+                    >
+                        <option value="">ללא העדפה (הכל מתאים)</option>
+                        {boatDefinitions.map(def => (
+                            <option key={def.id} value={def.id}>{def.label}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* ADVANCED CONSTRAINTS SECTION - EDIT MODE */}
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mt-2">
+                     <div className="flex items-center gap-2 mb-2 text-sm font-bold text-slate-800">
+                         <AlertOctagon size={16} className="text-brand-600"/> הגדרות שיבוץ מתקדמות
+                     </div>
+                     <div className="space-y-3">
+                         {/* Strength Toggle */}
+                         <div className="flex items-center justify-between bg-white p-2 rounded border">
+                             <div className="flex flex-col">
+                                 <span className="text-xs font-bold text-slate-700">עוצמת התניות</span>
+                                 <span className="text-[10px] text-slate-500">
+                                     {editingPerson.constraintStrength === 'MUST' ? 'חובה קריטית (עלול למנוע שיבוץ)' : 'העדפה בלבד (גמיש)'}
+                                 </span>
+                             </div>
+                             <button 
+                                type="button" 
+                                onClick={() => setEditingPerson({
+                                    ...editingPerson, 
+                                    constraintStrength: editingPerson.constraintStrength === 'MUST' ? 'PREFER' : 'MUST'
+                                })}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editingPerson.constraintStrength === 'MUST' ? 'bg-red-500' : 'bg-brand-500'}`}
+                             >
+                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${editingPerson.constraintStrength === 'MUST' ? 'translate-x-1' : 'translate-x-6'}`} />
+                             </button>
+                         </div>
+                         <div className="text-[10px] text-slate-500 bg-blue-50 p-2 rounded text-right">
+                             <HelpCircle size={10} className="inline ml-1"/>
+                             טיפ: מומלץ להשתמש ב"חובה" רק למקרים קריטיים (כמו מלווה רפואי). שימוש ב"העדפה" מאפשר למערכת גמישות רבה יותר.
+                         </div>
+
+                         {/* Gender Pref */}
+                         <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                             <input 
+                                type="checkbox" 
+                                checked={editingPerson.genderPreference || false}
+                                onChange={e => setEditingPerson({...editingPerson, genderPreference: e.target.checked})}
+                                className="w-4 h-4 text-brand-600"
+                             />
+                             העדפה לשיבוץ עם בני אותו מין בלבד
+                         </label>
+
+                         {/* Partner Constraints */}
+                         <div className="grid grid-cols-2 gap-2">
+                             <ConstraintSelector 
+                                title="חייב להיות עם" 
+                                type="MUST"
+                                currentList={editingPerson.mustPairWith || []}
+                                onAdd={(id) => handleAddPartnerConstraint('MUST', id, true)}
+                                onRemove={(id) => handleRemovePartnerConstraint('MUST', id, true)}
+                                allPeople={clubPeople}
+                                excludeId={editingPerson.id}
+                             />
+                             <ConstraintSelector 
+                                title="לא לשבץ עם" 
+                                type="CANNOT"
+                                currentList={editingPerson.cannotPairWith || []}
+                                onAdd={(id) => handleAddPartnerConstraint('CANNOT', id, true)}
+                                onRemove={(id) => handleRemovePartnerConstraint('CANNOT', id, true)}
+                                allPeople={clubPeople}
+                                excludeId={editingPerson.id}
+                             />
+                         </div>
+                     </div>
                 </div>
 
                 <div>
