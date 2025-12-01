@@ -145,7 +145,7 @@ export const SessionManager: React.FC = () => {
       const baseStyle = "flex items-center justify-between p-4 rounded-lg border text-right transition-all duration-200 select-none";
       if (!isPresent) return `${baseStyle} border-slate-200 hover:bg-slate-50 text-slate-600`;
       switch(role) {
-          case Role.INSTRUCTOR: return `${baseStyle} border-purple-500 bg-purple-50 ring-purple-500 text-purple-900 ring-1 shadow-sm`;
+          case Role.INSTRUCTOR: return `${baseStyle} border-cyan-500 bg-cyan-50 ring-cyan-500 text-cyan-900 ring-1 shadow-sm`;
           case Role.VOLUNTEER: return `${baseStyle} border-orange-500 bg-orange-50 ring-orange-500 text-orange-900 ring-1 shadow-sm`;
           case Role.MEMBER: return `${baseStyle} border-sky-500 bg-sky-50 ring-sky-500 text-sky-900 ring-1 shadow-sm`;
           case Role.GUEST: return `${baseStyle} border-emerald-500 bg-emerald-50 ring-emerald-500 text-emerald-900 ring-1 shadow-sm`;
@@ -240,7 +240,7 @@ export const SessionManager: React.FC = () => {
                         )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${person.role === Role.INSTRUCTOR ? 'bg-purple-100 text-purple-700' : person.role === Role.VOLUNTEER ? 'bg-orange-100 text-orange-700' : 'bg-sky-100 text-sky-700'}`}>{getRoleLabel(person.role, person.gender)}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${person.role === Role.INSTRUCTOR ? 'bg-cyan-100 text-cyan-700' : person.role === Role.VOLUNTEER ? 'bg-orange-100 text-orange-700' : 'bg-sky-100 text-sky-700'}`}>{getRoleLabel(person.role, person.gender)}</span>
                     </div>
                   </div>
                   {isPresent ? <CheckCircle2 className="text-brand-600" size={24} /> : <Circle className="text-slate-300" size={24} />}
@@ -289,7 +289,7 @@ export const SessionManager: React.FC = () => {
                                     {def.isStable ? <Anchor size={10} /> : <Wind size={10} />}
                                     {def.isStable ? 'יציב' : 'מהיר'}
                                 </span>
-                                <span className="text-[10px] text-slate-400 border-r pr-2 mr-1">קיבולת: {def.capacity}</span>
+                                <span className="text-xs text-slate-400 border-r pr-2 mr-1">קיבולת: {def.capacity}</span>
                             </div>
                         </div>
                         <span className="text-brand-600 font-bold text-xl">{localInventory[def.id] || 0}</span>

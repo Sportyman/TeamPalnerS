@@ -36,6 +36,9 @@ export const PairingBoard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'EXISTING' | 'GUEST'>('EXISTING');
   const [newGuestName, setNewGuestName] = useState('');
 
+  // Animation State for Deletions
+  const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set());
+
   // Fallback for null activeClub
   if (!activeClub) return null;
 
@@ -110,17 +113,30 @@ export const PairingBoard: React.FC = () => {
       }
   };
 
+  // Helper to handle delete with animation
+  const handleDeleteWithAnim = (id: string, action: () => void) => {
+      setDeletingItems(prev => new Set(prev).add(id));
+      setTimeout(() => {
+          action();
+          setDeletingItems(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(id);
+              return newSet;
+          });
+      }, 300); // Wait for animation
+  };
+
   const handleDeleteTeam = (teamId: string, memberCount: number) => {
       if (memberCount > 0) {
           if (!confirm(`בסירה זו יש ${memberCount} משתתפים. האם למחוק אותה בכל זאת? המשתתפים יוסרו מהלוח אך יישארו ברשימת הנוכחות.`)) {
               return;
           }
       }
-      removeTeam(teamId);
+      handleDeleteWithAnim(teamId, () => removeTeam(teamId));
   };
 
   const handleRemoveMember = (teamId: string, personId: string) => {
-      removeMemberFromTeam(teamId, personId);
+      handleDeleteWithAnim(personId, () => removeMemberFromTeam(teamId, personId));
   };
 
   const generateShareData = () => {
@@ -200,7 +216,7 @@ export const PairingBoard: React.FC = () => {
 
   const getMemberStyle = (role: Role) => {
     switch (role) {
-      case Role.INSTRUCTOR: return 'bg-purple-50 border-purple-200';
+      case Role.INSTRUCTOR: return 'bg-cyan-50 border-cyan-200'; // Cyan for Instructor
       case Role.VOLUNTEER: return 'bg-orange-50 border-orange-200';
       case Role.MEMBER: return 'bg-sky-50 border-sky-200';
       case Role.GUEST: return 'bg-emerald-50 border-emerald-200';
@@ -523,6 +539,9 @@ export const PairingBoard: React.FC = () => {
         <DragDropContext onDragEnd={onDragEnd}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {session.teams.map((team: Team, index: number) => {
+                const isDeleting = deletingItems.has(team.id);
+                if (isDeleting) return null; // Or render a placeholder? Better to animate in place
+
                 const boatDef = boatDefinitions.find(d => d.id === team.boatType);
                 const capacity = boatDef?.capacity || 99;
                 const isOverCapacity = team.members.length > capacity;
@@ -530,15 +549,19 @@ export const PairingBoard: React.FC = () => {
                 const hasWarnings = (team.warnings && team.warnings.length > 0) || isOverCapacity;
                 const colorClass = TEAM_COLORS[index % TEAM_COLORS.length];
                 
-                // Dynamic border class for errors
+                // Dynamic border class for errors (More intense red for Over Capacity)
                 let containerClass = colorClass;
-                if (isOverCapacity) containerClass = 'border-red-500 bg-red-50 ring-2 ring-red-200';
+                if (isOverCapacity) containerClass = 'border-red-600 bg-red-100 ring-4 ring-red-200/50 shadow-lg shadow-red-100';
                 else if (hasWarnings) containerClass = 'border-amber-300 bg-amber-50';
                 
+                // Fade out animation style
+                const fadeStyle = isDeleting ? { opacity: 0, transform: 'scale(0.9)', transition: 'all 0.3s ease-out' } : {};
+
                 return (
                 <div 
                 key={team.id}
-                className={`rounded-xl shadow-sm border-2 flex flex-col overflow-hidden transition-all duration-300 ${containerClass}`}
+                style={fadeStyle}
+                className={`rounded-xl shadow-sm border-2 flex flex-col overflow-hidden transition-all duration-300 ${containerClass} ${isDeleting ? 'pointer-events-none' : ''}`}
                 >
                 {/* Header with Boat Selector */}
                 <div className="p-3 border-b border-slate-100/50 bg-white/30 flex justify-between items-center">
@@ -558,7 +581,7 @@ export const PairingBoard: React.FC = () => {
                         </select>
                         {hasWarnings && (
                         <div className="cursor-help group relative">
-                          <div className={isOverCapacity ? 'text-red-500 animate-pulse' : 'text-amber-500'}>
+                          <div className={isOverCapacity ? 'text-red-600 animate-pulse' : 'text-amber-500'}>
                             <AlertTriangle size={20} />
                           </div>
                           <div className="absolute top-full right-0 mt-2 w-48 p-2 bg-white border border-slate-200 text-slate-800 text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
@@ -593,7 +616,7 @@ export const PairingBoard: React.FC = () => {
 
                 {/* Warnings Text Banner */}
                 {hasWarnings && (
-                    <div className={`px-3 py-1 text-sm border-b ${isOverCapacity ? 'bg-red-100 text-red-800 border-red-200' : 'bg-amber-100 text-amber-800 border-amber-200'}`}>
+                    <div className={`px-3 py-1 text-sm border-b ${isOverCapacity ? 'bg-red-200 text-red-900 border-red-300 font-bold' : 'bg-amber-100 text-amber-800 border-amber-200'}`}>
                     {isOverCapacity ? `חריגה מקיבולת (${team.members.length}/${capacity})` : team.warnings?.join(', ')}
                     </div>
                 )}
@@ -611,24 +634,34 @@ export const PairingBoard: React.FC = () => {
                         {team.members.map((member: Person, index: number) => {
                         const isSwappingMe = swapSource?.teamId === team.id && swapSource?.index === index;
                         const constraints = getActiveConstraintBadges(member, team.members);
+                        const isMemberDeleting = deletingItems.has(member.id);
                         
+                        // Member fade style
+                        const memberStyle = isMemberDeleting ? { opacity: 0, transform: 'scale(0.8)', marginBottom: '-40px' } : {};
+
                         return (
                             <Draggable key={member.id} draggableId={member.id} index={index}>
                             {(provided, snapshot) => (
                                 <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
+                                style={{ 
+                                    ...provided.draggableProps.style, 
+                                    ...memberStyle,
+                                    transition: isMemberDeleting ? 'all 0.3s ease-out' : provided.draggableProps.style?.transition
+                                }}
                                 className={`
                                     relative group
                                     p-3 rounded-lg border flex items-center justify-between select-none
                                     transition-all duration-200
                                     ${snapshot.isDragging 
-                                    ? 'shadow-2xl ring-2 ring-brand-500 ring-offset-2 z-50 bg-white opacity-95' 
+                                    ? 'shadow-2xl ring-4 ring-brand-500/30 z-50 bg-white opacity-100 scale-105' 
                                     : 'shadow-sm hover:shadow-md'
                                     }
                                     ${getMemberStyle(member.role)}
                                     ${isSwappingMe ? 'ring-2 ring-brand-500 ring-offset-1' : ''}
                                     ${swapSource && !isSwappingMe ? 'cursor-pointer hover:bg-brand-50' : ''}
+                                    ${isMemberDeleting ? 'pointer-events-none' : ''}
                                 `}
                                 onClick={() => swapSource && handleSwapClick(team.id, index)}
                                 title={`רמה: ${member.rank}`}
