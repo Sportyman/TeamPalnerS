@@ -1,4 +1,5 @@
 
+
 export enum Role {
   INSTRUCTOR = 'INSTRUCTOR', // New Role
   VOLUNTEER = 'VOLUNTEER',
@@ -64,6 +65,7 @@ export interface BoatDefinition {
   isStable: boolean; 
   capacity: number; 
   defaultCount: number;
+  minSkippers?: number; // New: Minimum skippers required
 }
 
 export interface BoatInventory {
@@ -87,7 +89,7 @@ export interface UserPermission {
   allowedClubs: ClubID[];
 }
 
-export const APP_VERSION = '2.9.2';
+export const APP_VERSION = '2.9.4';
 
 export const TEAM_COLORS = [
   'bg-blue-50 border-blue-200',      
@@ -120,6 +122,7 @@ export interface Person {
   role: Role;
   rank: number;
   notes?: string;
+  isSkipper?: boolean; // New: Is this person a certified skipper?
   
   // Pairing Constraints
   preferredBoatType?: string; 

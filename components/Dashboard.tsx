@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { Role, getRoleLabel, Person, Gender, GenderLabel, BoatDefinition, GenderPrefType, GenderPrefLabels, ConstraintStrength } from '../types';
-import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar, Plus, Anchor, Wind, Users2, ShieldAlert, AlertOctagon, Heart, Ban, Shield } from 'lucide-react';
+import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar, Plus, Anchor, Wind, Users2, ShieldAlert, AlertOctagon, Heart, Ban, Shield, ShipWheel } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 type ViewMode = 'MENU' | 'PEOPLE' | 'INVENTORY';
@@ -199,6 +199,7 @@ export const Dashboard: React.FC = () => {
   const [newBoatCount, setNewBoatCount] = useState(1);
   const [newBoatCapacity, setNewBoatCapacity] = useState(2); 
   const [newBoatStable, setNewBoatStable] = useState(true);
+  const [newBoatMinSkippers, setNewBoatMinSkippers] = useState(0);
 
   // --- People State ---
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
@@ -212,6 +213,7 @@ export const Dashboard: React.FC = () => {
   const [newRank, setNewRank] = useState(3);
   const [newNotes, setNewNotes] = useState('');
   const [newTags, setNewTags] = useState<string[]>([]);
+  const [newIsSkipper, setNewIsSkipper] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [newPreferredBoat, setNewPreferredBoat] = useState<string>('');
@@ -265,6 +267,7 @@ export const Dashboard: React.FC = () => {
     setNewRole(Role.VOLUNTEER);
     setNewRank(3);
     setNewTags([]);
+    setNewIsSkipper(false);
     setTagInput('');
     setPhoneError('');
     setNewPreferredBoat('');
@@ -294,6 +297,7 @@ export const Dashboard: React.FC = () => {
       rank: newRank,
       notes: newNotes,
       tags: newTags,
+      isSkipper: newIsSkipper,
       preferredBoatType: newPreferredBoat || undefined,
       genderConstraint: { type: newGenderPrefType, strength: newGenderPrefStrength },
       mustPairWith: newMustPair,
@@ -410,7 +414,8 @@ export const Dashboard: React.FC = () => {
           label: newBoatName,
           defaultCount: newBoatCount,
           isStable: newBoatStable,
-          capacity: newBoatCapacity
+          capacity: newBoatCapacity,
+          minSkippers: newBoatMinSkippers
       };
       
       setDraftDefs([...draftDefs, newBoat]);
@@ -420,6 +425,7 @@ export const Dashboard: React.FC = () => {
       setNewBoatCount(1);
       setNewBoatCapacity(2);
       setNewBoatStable(true);
+      setNewBoatMinSkippers(0);
       setIsAddingBoat(false);
   };
 
@@ -583,6 +589,15 @@ export const Dashboard: React.FC = () => {
                                     min={1}
                                 />
                             </div>
+                            <div>
+                                <label className="block text-xs font-bold text-brand-600 mb-1">מינימום סקיפרים</label>
+                                <SmartNumberInput 
+                                    value={newBoatMinSkippers} 
+                                    onChange={setNewBoatMinSkippers} 
+                                    className="w-full px-3 py-2 border rounded-md" 
+                                    min={0}
+                                />
+                            </div>
                         </div>
                         <div className="flex items-center gap-2 mb-4">
                             <input 
@@ -615,7 +630,7 @@ export const Dashboard: React.FC = () => {
                                         className="font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-brand-500 focus:outline-none"
                                     />
                                  </div>
-                                 <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-1">
                                      <span className={`px-2 py-0.5 rounded-full flex items-center gap-1 border ${def.isStable ? 'bg-green-100 text-green-700 border-green-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>
                                          {def.isStable ? <Anchor size={12}/> : <Wind size={12}/>}
                                          {def.isStable ? 'יציב' : 'מהיר'}
@@ -627,6 +642,16 @@ export const Dashboard: React.FC = () => {
                                             min={1}
                                             value={def.capacity}
                                             onChange={val => handleUpdateBoatDraft(def.id, 'capacity', val)}
+                                            className="w-10 bg-transparent border-b border-dashed border-slate-300 text-center font-bold focus:outline-none"
+                                         />
+                                     </span>
+                                     <span className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                                         <ShipWheel size={12}/>
+                                         מינימום סקיפרים: 
+                                         <SmartNumberInput 
+                                            min={0}
+                                            value={def.minSkippers || 0}
+                                            onChange={val => handleUpdateBoatDraft(def.id, 'minSkippers', val)}
                                             className="w-10 bg-transparent border-b border-dashed border-slate-300 text-center font-bold focus:outline-none"
                                          />
                                      </span>
@@ -716,7 +741,14 @@ export const Dashboard: React.FC = () => {
                     {clubPeople.map(person => (
                         <tr key={person.id} className="hover:bg-slate-50/50 transition-colors">
                             <td className="p-4">
-                                <div className="font-bold text-slate-800">{person.name}</div>
+                                <div className="flex items-center gap-2">
+                                    <div className="font-bold text-slate-800">{person.name}</div>
+                                    {person.isSkipper && (
+                                        <div className="bg-blue-100 text-blue-700 p-1 rounded-full" title="מוסמך כסקיפר">
+                                            <ShipWheel size={14} />
+                                        </div>
+                                    )}
+                                </div>
                                 {person.phone && (
                                     <div className="text-xs text-slate-500 mt-0.5">{person.phone}</div>
                                 )}
@@ -813,6 +845,19 @@ export const Dashboard: React.FC = () => {
                         <label className="block text-sm font-bold text-slate-700 mb-1">דירוג (1-5)</label>
                         <input type="number" min="1" max="5" value={newRank} onChange={e => setNewRank(Number(e.target.value))} className="w-full border rounded-lg p-2" />
                     </div>
+                </div>
+
+                <div className="flex items-center gap-2 border p-2 rounded-lg bg-blue-50 border-blue-100">
+                    <input 
+                        type="checkbox" 
+                        id="newIsSkipper" 
+                        checked={newIsSkipper} 
+                        onChange={e => setNewIsSkipper(e.target.checked)} 
+                        className="w-5 h-5 text-blue-600 rounded"
+                    />
+                    <label htmlFor="newIsSkipper" className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                         <ShipWheel size={18} /> מוסמך כסקיפר?
+                    </label>
                 </div>
 
                 <div>
@@ -958,6 +1003,19 @@ export const Dashboard: React.FC = () => {
                         <label className="block text-sm font-bold text-slate-700 mb-1">דירוג (1-5)</label>
                         <input type="number" min="1" max="5" value={editingPerson.rank} onChange={e => setEditingPerson({...editingPerson, rank: Number(e.target.value)})} className="w-full border rounded-lg p-2" />
                     </div>
+                </div>
+
+                <div className="flex items-center gap-2 border p-2 rounded-lg bg-blue-50 border-blue-100">
+                    <input 
+                        type="checkbox" 
+                        id="editIsSkipper" 
+                        checked={editingPerson.isSkipper || false} 
+                        onChange={e => setEditingPerson({...editingPerson, isSkipper: e.target.checked})} 
+                        className="w-5 h-5 text-blue-600 rounded"
+                    />
+                    <label htmlFor="editIsSkipper" className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                         <ShipWheel size={18} /> מוסמך כסקיפר?
+                    </label>
                 </div>
 
                 <div>

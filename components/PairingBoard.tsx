@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { Team, Role, getRoleLabel, BoatType, TEAM_COLORS, Person } from '../types';
-import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Shuffle, X, Plus, Trash2, Search, UserPlus, Lock, ShieldCheck, Heart, UserX, Shield, AlertOctagon } from 'lucide-react';
+import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Shuffle, X, Plus, Trash2, Search, UserPlus, Lock, ShieldCheck, Heart, UserX, Shield, ShipWheel } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 // Pairing Board Component
@@ -394,7 +394,10 @@ export const PairingBoard: React.FC = () => {
                                                   }`}
                                               >
                                                   <div>
-                                                      <div className="font-bold text-slate-800">{p.name}</div>
+                                                      <div className="font-bold text-slate-800 flex items-center gap-1">
+                                                          {p.name}
+                                                          {p.isSkipper && <ShipWheel size={12} className="text-blue-600" />}
+                                                      </div>
                                                       <div className="flex gap-2">
                                                           <span className="text-xs text-slate-500">{getRoleLabel(p.role, p.gender)}</span>
                                                           {isAssigned && (
@@ -544,13 +547,19 @@ export const PairingBoard: React.FC = () => {
 
                 const boatDef = boatDefinitions.find(d => d.id === team.boatType);
                 const capacity = boatDef?.capacity || 99;
-                const isOverCapacity = team.members.length > capacity;
                 
-                const hasWarnings = (team.warnings && team.warnings.length > 0) || isOverCapacity;
+                // Calculate warnings
+                const isOverCapacity = team.members.length > capacity;
+                const minSkippers = boatDef?.minSkippers || 0;
+                const currentSkippers = team.members.filter(m => m.isSkipper).length;
+                const isMissingSkipper = minSkippers > 0 && currentSkippers < minSkippers;
+                
+                const hasWarnings = (team.warnings && team.warnings.length > 0) || isOverCapacity || isMissingSkipper;
                 const colorClass = TEAM_COLORS[index % TEAM_COLORS.length];
                 
                 let containerClass = colorClass;
                 if (isOverCapacity) containerClass = 'border-red-600 bg-red-100 ring-4 ring-red-200/50 shadow-lg shadow-red-100';
+                else if (isMissingSkipper) containerClass = 'border-red-400 bg-red-50 ring-2 ring-red-200';
                 else if (hasWarnings) containerClass = 'border-amber-300 bg-amber-50';
                 
                 const fadeStyle = isDeleting ? { opacity: 0, transform: 'scale(0.9)', transition: 'all 0.3s ease-out' } : {};
@@ -579,11 +588,12 @@ export const PairingBoard: React.FC = () => {
                         </select>
                         {hasWarnings && (
                         <div className="cursor-help group relative">
-                          <div className={isOverCapacity ? 'text-red-600 animate-pulse' : 'text-amber-500'}>
+                          <div className={isOverCapacity || isMissingSkipper ? 'text-red-600 animate-pulse' : 'text-amber-500'}>
                             <AlertTriangle size={20} />
                           </div>
                           <div className="absolute top-full right-0 mt-2 w-48 p-2 bg-white border border-slate-200 text-slate-800 text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                              {isOverCapacity && <div className="text-red-600 font-bold mb-1">חריגה מקיבולת ({team.members.length}/{capacity})</div>}
+                             {isMissingSkipper && <div className="text-red-600 font-bold mb-1">חסר סקיפר ({currentSkippers}/{minSkippers})</div>}
                              {team.warnings?.join(', ')}
                           </div>
                         </div>
@@ -613,8 +623,12 @@ export const PairingBoard: React.FC = () => {
                 </div>
 
                 {hasWarnings && (
-                    <div className={`px-3 py-1 text-sm border-b ${isOverCapacity ? 'bg-red-200 text-red-900 border-red-300 font-bold' : 'bg-amber-100 text-amber-800 border-amber-200'}`}>
-                    {isOverCapacity ? `חריגה מקיבולת (${team.members.length}/${capacity})` : team.warnings?.join(', ')}
+                    <div className={`px-3 py-1 text-sm border-b ${isOverCapacity || isMissingSkipper ? 'bg-red-200 text-red-900 border-red-300 font-bold' : 'bg-amber-100 text-amber-800 border-amber-200'}`}>
+                    {isOverCapacity 
+                        ? `חריגה מקיבולת (${team.members.length}/${capacity})` 
+                        : isMissingSkipper 
+                            ? `חסר סקיפר (${currentSkippers}/${minSkippers})`
+                            : team.warnings?.join(', ')}
                     </div>
                 )}
 
@@ -637,9 +651,12 @@ export const PairingBoard: React.FC = () => {
                         return (
                             <Draggable key={member.id} draggableId={member.id} index={index}>
                             {(provided, snapshot) => {
-                                // Separating the Draggable container (positioning)
-                                // from the Visual container (styling & rotation)
-                                // fixes coordinate issues with transforms.
+                                // CRITICAL DND FIX FOR MOBILE:
+                                // We separate the Draggable structural container from the Visual container.
+                                // 1. Outer div gets the ref and draggableProps. It handles POSITIONING.
+                                // 2. Inner div handles STYLING, ROTATION (TILT), and SCALE.
+                                // 3. The Drag Handle gets specific touch-action: none to prevent scrolling.
+                                // This prevents coordinate conflicts between CSS Transforms and Fixed Positioning.
                                 return (
                                 <div
                                 ref={provided.innerRef}
@@ -647,13 +664,9 @@ export const PairingBoard: React.FC = () => {
                                 style={{
                                     ...provided.draggableProps.style,
                                     ...memberStyle,
-                                    // Handle deleting animation transition
                                     transition: isMemberDeleting ? 'all 0.3s ease-out' : provided.draggableProps.style?.transition
                                 }}
-                                className={`
-                                    relative group
-                                    ${isMemberDeleting ? 'pointer-events-none' : ''}
-                                `}
+                                className={`relative group ${isMemberDeleting ? 'pointer-events-none' : ''}`}
                                 onClick={() => swapSource && handleSwapClick(team.id, index)}
                                 title={`רמה: ${member.rank}`}
                                 >
@@ -674,14 +687,20 @@ export const PairingBoard: React.FC = () => {
                                     <div 
                                         {...provided.dragHandleProps}
                                         className="p-4 -mr-2 ml-2 text-slate-400 hover:text-brand-600 bg-slate-100/50 hover:bg-slate-200/50 rounded-md flex items-center justify-center shrink-0 self-stretch cursor-grab active:cursor-grabbing touch-none"
-                                        // CRITICAL FOR MOBILE: Prevents scrolling when touching the handle
-                                        style={{ touchAction: 'none' }}
+                                        style={{ touchAction: 'none' }} // Prevents scrolling when touching handle
                                     >
                                         <GripVertical size={24} />
                                     </div>
                                     
                                     <div className="flex-1 flex flex-col px-1">
-                                        <span className="font-bold text-slate-900 text-lg leading-tight">{member.name}</span>
+                                        <div className="flex items-center gap-1">
+                                            <span className="font-bold text-slate-900 text-lg leading-tight">{member.name}</span>
+                                            {member.isSkipper && (
+                                                <div className="text-blue-600 bg-blue-50 rounded-full p-0.5" title="סקיפר">
+                                                    <ShipWheel size={14} />
+                                                </div>
+                                            )}
+                                        </div>
                                         
                                         <div className="flex items-center gap-2 mt-1">
                                         <span className="text-sm text-slate-500 uppercase font-medium">{getRoleLabel(member.role, member.gender)}</span>
@@ -782,7 +801,10 @@ export const PairingBoard: React.FC = () => {
                     </div>
                     <div className="flex gap-4 pr-4">
                         {team.members.map((m: Person) => (
-                            <span key={m.id} className="text-lg font-medium">{m.name}</span>
+                            <div key={m.id} className="flex items-center gap-1">
+                                <span className="text-lg font-medium">{m.name}</span>
+                                {m.isSkipper && <ShipWheel size={14} className="text-black" />}
+                            </div>
                         ))}
                          {team.members.length === 0 && <span className="text-slate-400 italic">סירה ריקה</span>}
                     </div>

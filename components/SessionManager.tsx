@@ -1,8 +1,9 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../store';
 import { BoatInventory, getRoleLabel, Role } from '../types';
-import { Ship, Users, CheckCircle2, Circle, ArrowLeft, ArrowRight, CheckSquare, Square, RotateCcw, Shield, ArrowDownAZ, ArrowUpNarrowWide, Settings, Wind, Anchor, AlertTriangle } from 'lucide-react';
+import { Ship, Users, CheckCircle2, Circle, ArrowLeft, ArrowRight, CheckSquare, Square, RotateCcw, Shield, ArrowDownAZ, ArrowUpNarrowWide, Settings, Wind, Anchor, AlertTriangle, ShipWheel } from 'lucide-react';
 import { PairingBoard } from './PairingBoard';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
@@ -232,7 +233,10 @@ export const SessionManager: React.FC = () => {
                 <button key={person.id} onClick={() => toggleAttendance(person.id)} className={getCardStyle(person.role, isPresent)}>
                   <div>
                     <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className={`font-bold text-lg ${isPresent ? '' : 'text-slate-800'}`}>{person.name}</span>
+                        <div className="flex items-center gap-1">
+                            <span className={`font-bold text-lg ${isPresent ? '' : 'text-slate-800'}`}>{person.name}</span>
+                            {person.isSkipper && <ShipWheel size={14} className="text-blue-600" />}
+                        </div>
                         {person.phone && (
                             <span className={`text-sm ${isPresent ? 'text-slate-600' : 'text-slate-400'}`} dir="ltr">
                                 {person.phone}
@@ -284,12 +288,17 @@ export const SessionManager: React.FC = () => {
                     <label className="flex items-center justify-between mb-2">
                         <div className="flex flex-col">
                             <span className="font-medium text-slate-700">{def.label}</span>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                                 <span className="text-[10px] text-slate-400 flex items-center gap-1">
                                     {def.isStable ? <Anchor size={10} /> : <Wind size={10} />}
                                     {def.isStable ? 'יציב' : 'מהיר'}
                                 </span>
                                 <span className="text-xs text-slate-400 border-r pr-2 mr-1">קיבולת: {def.capacity}</span>
+                                {(def.minSkippers || 0) > 0 && (
+                                     <span className="text-xs text-blue-500 font-bold border-r pr-2 mr-1 flex items-center gap-0.5">
+                                         <ShipWheel size={10} /> נדרש סקיפר
+                                     </span>
+                                )}
                             </div>
                         </div>
                         <span className="text-brand-600 font-bold text-xl">{localInventory[def.id] || 0}</span>

@@ -1,4 +1,5 @@
 
+
 import { Person, Role, BoatInventory, Team, BoatDefinition, GenderPrefType } from '../types';
 
 // --- Types for Internal Logic ---
@@ -6,6 +7,7 @@ interface Cluster {
   id: string;
   members: Person[];
   hasVolunteer: boolean;
+  skipperCount: number; // New: track how many skippers in this cluster
   totalRank: number;
   roles: Role[];
   size: number;
@@ -89,6 +91,7 @@ export const generateSmartPairings = (
           id: `cluster-${root.id}`,
           members: clusterMembers,
           hasVolunteer: clusterMembers.some(m => m.role === Role.VOLUNTEER || m.role === Role.INSTRUCTOR),
+          skipperCount: clusterMembers.filter(m => m.isSkipper).length,
           totalRank: clusterMembers.reduce((sum, m) => sum + m.rank, 0),
           roles: clusterMembers.map(m => m.role),
           size: clusterMembers.length
@@ -150,6 +153,7 @@ export const generateSmartPairings = (
 
   for (const boatDef of multiSeatBoats) {
       let availableCount = currentInventory[boatDef.id] || 0;
+      const requiresSkipper = (boatDef.minSkippers || 0) > 0;
 
       while (availableCount > 0) {
           // Logic: We need to build a team for this boat.
@@ -157,17 +161,34 @@ export const generateSmartPairings = (
           
           let teamMembers: Person[] = [];
           let remainingCapacity = boatDef.capacity;
+          let currentSkipperCount = 0;
 
           // A. Try to find a Captain Cluster that fits
-          // Prefer one that has a preference for this boat type
-          let capIndex = captainClusters.findIndex(c => 
-              c.size <= remainingCapacity && 
-              (c.members[0].preferredBoatType ? c.members[0].preferredBoatType === boatDef.id : true)
-          );
+          // If boat requires skipper, prioritize clusters with skippers
+          let capIndex = -1;
           
-          // If no specific preference match, take any that fits
+          if (requiresSkipper) {
+               // Find captain with skipper qualification first
+               capIndex = captainClusters.findIndex(c => 
+                   c.size <= remainingCapacity && 
+                   c.skipperCount > 0 &&
+                   (c.members[0].preferredBoatType ? c.members[0].preferredBoatType === boatDef.id : true)
+               );
+               if (capIndex === -1) {
+                   // Try without preference match
+                   capIndex = captainClusters.findIndex(c => c.size <= remainingCapacity && c.skipperCount > 0);
+               }
+          } 
+          
+          // If no skipper found (or not required), fall back to any captain
           if (capIndex === -1) {
-              capIndex = captainClusters.findIndex(c => c.size <= remainingCapacity);
+             capIndex = captainClusters.findIndex(c => 
+                  c.size <= remainingCapacity && 
+                  (c.members[0].preferredBoatType ? c.members[0].preferredBoatType === boatDef.id : true)
+              );
+              if (capIndex === -1) {
+                  capIndex = captainClusters.findIndex(c => c.size <= remainingCapacity);
+              }
           }
 
           // If we found a captain cluster
@@ -176,6 +197,7 @@ export const generateSmartPairings = (
               captainClusters.splice(capIndex, 1); // Remove from pool
               teamMembers.push(...capCluster.members);
               remainingCapacity -= capCluster.size;
+              currentSkipperCount += capCluster.skipperCount;
           } else {
               // No captain fits or available. 
               // Skip this boat for now (unless we are desperate, but we handle desperate in Step 5).
@@ -210,16 +232,30 @@ export const generateSmartPairings = (
               }
               
               // 3. If no passenger fits, can we put another captain cluster? (Two volunteers in one boat)
+              // Especially useful if we still need skippers
               if (bestPassIdx === -1 && captainClusters.length > 0) {
-                  // Only if we really need to fill space (e.g. huge boat) or getting desperate
-                  const extraCapIdx = captainClusters.findIndex(c => 
-                       c.size <= remainingCapacity && isCompatible(c, teamMembers)
-                  );
+                  const needMoreSkippers = requiresSkipper && currentSkipperCount < (boatDef.minSkippers || 0);
+                  
+                  // If we need skippers, prioritize skipper clusters
+                  let extraCapIdx = -1;
+                  if (needMoreSkippers) {
+                       extraCapIdx = captainClusters.findIndex(c => 
+                          c.size <= remainingCapacity && c.skipperCount > 0 && isCompatible(c, teamMembers)
+                       );
+                  }
+                  
+                  if (extraCapIdx === -1) {
+                      extraCapIdx = captainClusters.findIndex(c => 
+                          c.size <= remainingCapacity && isCompatible(c, teamMembers)
+                      );
+                  }
+
                   if (extraCapIdx !== -1) {
                       const extra = captainClusters[extraCapIdx];
                       captainClusters.splice(extraCapIdx, 1);
                       teamMembers.push(...extra.members);
                       remainingCapacity -= extra.size;
+                      currentSkipperCount += extra.skipperCount;
                       continue; // Loop again
                   }
               }
@@ -229,6 +265,7 @@ export const generateSmartPairings = (
                   passengerClusters.splice(bestPassIdx, 1);
                   teamMembers.push(...passCluster.members);
                   remainingCapacity -= passCluster.size;
+                  currentSkipperCount += passCluster.skipperCount;
               } else {
                   // No one fits or is compatible. Stop filling this boat.
                   break;
@@ -248,6 +285,12 @@ export const generateSmartPairings = (
              }
              if (teamMembers.length === 1 && boatDef.capacity > 1) {
                  warnings.push('חותר בודד בסירה זוגית');
+             }
+             
+             // Check Skipper Requirement
+             const totalSkippers = teamMembers.filter(m => m.isSkipper).length;
+             if ((boatDef.minSkippers || 0) > 0 && totalSkippers < (boatDef.minSkippers || 0)) {
+                 warnings.push('חסר סקיפר בסירה');
              }
 
              teams.push({
@@ -294,6 +337,12 @@ export const generateSmartPairings = (
               // Warn if a low-rank member is alone in single kayak (unless stable)
               if (cluster.totalRank <= 2 && !cluster.hasVolunteer && !boatDef.isStable) {
                   warnings.push('חותר מתחיל בקיאק יחיד');
+              }
+              
+              // Only check skipper if boat specifically mandates it (unlikely for singles but possible)
+              const totalSkippers = cluster.members.filter(m => m.isSkipper).length;
+              if ((boatDef.minSkippers || 0) > 0 && totalSkippers < (boatDef.minSkippers || 0)) {
+                 warnings.push('נדרש סקיפר');
               }
 
               teams.push({
@@ -352,6 +401,11 @@ export const generateSmartPairings = (
                    if (!teamMembers.some(m => m.role === Role.VOLUNTEER || m.role === Role.INSTRUCTOR)) warnings.push('צוות ללא מתנדב');
                    if (teamMembers.length === 1 && boatDef.capacity > 1) warnings.push('חותר בודד בסירה גדולה');
                    
+                   const totalSkippers = teamMembers.filter(m => m.isSkipper).length;
+                   if ((boatDef.minSkippers || 0) > 0 && totalSkippers < (boatDef.minSkippers || 0)) {
+                       warnings.push('חסר סקיפר בסירה');
+                   }
+
                    teams.push({
                       id: newId(),
                       members: teamMembers,
