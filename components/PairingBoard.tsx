@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
-import { Team, Role, RoleLabel, BoatType, TEAM_COLORS, Person } from '../types';
+import { Team, Role, getRoleLabel, BoatType, TEAM_COLORS, Person } from '../types';
 import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Shuffle, X, Plus, Trash2, Search, UserPlus, Lock, ShieldCheck, Heart, UserX, Shield } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
@@ -129,7 +129,8 @@ export const PairingBoard: React.FC = () => {
       boatType: t.boatType,
       members: t.members.map((m: Person) => ({
         name: m.name,
-        role: m.role
+        role: m.role,
+        gender: m.gender // Added Gender for correct labeling in public view
       }))
     }));
 
@@ -371,7 +372,7 @@ export const PairingBoard: React.FC = () => {
                                                   <div>
                                                       <div className="font-bold text-slate-800">{p.name}</div>
                                                       <div className="flex gap-2">
-                                                          <span className="text-xs text-slate-500">{RoleLabel[p.role]}</span>
+                                                          <span className="text-xs text-slate-500">{getRoleLabel(p.role, p.gender)}</span>
                                                           {isAssigned && (
                                                               <span className="text-xs font-bold text-brand-600 flex items-center gap-1">
                                                                   <Lock size={10} /> {assignedTo}
@@ -612,7 +613,7 @@ export const PairingBoard: React.FC = () => {
                                     <span className="font-bold text-slate-900 text-lg leading-tight">{member.name}</span>
                                     
                                     <div className="flex items-center gap-2 mt-1">
-                                      <span className="text-sm text-slate-500 uppercase font-medium">{RoleLabel[member.role]}</span>
+                                      <span className="text-sm text-slate-500 uppercase font-medium">{getRoleLabel(member.role, member.gender)}</span>
                                       <div className="flex">
                                         {Array.from({ length: member.rank }).map((_, i) => (
                                           <Star key={i} size={14} className={`fill-current ${getRankColor(member.rank)}`} />

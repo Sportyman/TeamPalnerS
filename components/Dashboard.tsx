@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
-import { Role, RoleLabel, Person, Gender, GenderLabel, BoatDefinition, GenderPrefType, GenderPrefLabels, ConstraintStrength } from '../types';
+import { Role, getRoleLabel, Person, Gender, GenderLabel, BoatDefinition, GenderPrefType, GenderPrefLabels, ConstraintStrength } from '../types';
 import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar, Plus, Anchor, Wind, Users2, ShieldAlert, AlertOctagon, Heart, Ban, Shield } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -69,7 +69,7 @@ const RelationshipManager = ({
                          <div key={p.id} className="bg-white p-2 rounded border grid grid-cols-[1fr_32px_32px_32px] gap-1 items-center shadow-sm">
                              <div className="flex flex-col overflow-hidden">
                                  <span className="text-xs font-bold text-slate-700 truncate">{p.name}</span>
-                                 <span className="text-[10px] text-slate-400 truncate">{RoleLabel[p.role]}</span>
+                                 <span className="text-[10px] text-slate-400 truncate">{getRoleLabel(p.role, p.gender)}</span>
                              </div>
                              
                              <button 
@@ -720,7 +720,7 @@ export const Dashboard: React.FC = () => {
                                     <div className="text-xs text-slate-500 mt-0.5">{person.phone}</div>
                                 )}
                                 <div className="text-xs text-slate-400 md:hidden mt-1 flex gap-2">
-                                    <span>{RoleLabel[person.role]}</span>
+                                    <span>{getRoleLabel(person.role, person.gender)}</span>
                                     <span>•</span>
                                     <span>רמה {person.rank}</span>
                                 </div>
@@ -739,7 +739,7 @@ export const Dashboard: React.FC = () => {
                             </td>
                             <td className="p-4 hidden md:table-cell">
                                 <span className={`text-xs px-2 py-1 rounded-full font-bold ${getRoleBadgeStyle(person.role)}`}>
-                                    {RoleLabel[person.role]}
+                                    {getRoleLabel(person.role, person.gender)}
                                 </span>
                             </td>
                             <td className="p-4 hidden md:table-cell">
@@ -805,7 +805,7 @@ export const Dashboard: React.FC = () => {
                      <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1">תפקיד</label>
                         <select value={newRole} onChange={e => setNewRole(e.target.value as Role)} className="w-full border rounded-lg p-2">
-                            {Object.values(Role).map(r => <option key={r} value={r}>{RoleLabel[r]}</option>)}
+                            {Object.values(Role).map(r => <option key={r} value={r}>{getRoleLabel(r, newGender)}</option>)}
                         </select>
                     </div>
                     <div>
@@ -950,7 +950,7 @@ export const Dashboard: React.FC = () => {
                      <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1">תפקיד</label>
                         <select value={editingPerson.role} onChange={e => setEditingPerson({...editingPerson, role: e.target.value as Role})} className="w-full border rounded-lg p-2">
-                            {Object.values(Role).map(r => <option key={r} value={r}>{RoleLabel[r]}</option>)}
+                            {Object.values(Role).map(r => <option key={r} value={r}>{getRoleLabel(r, editingPerson.gender)}</option>)}
                         </select>
                     </div>
                     <div>

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../store';
-import { BoatInventory, RoleLabel, Role } from '../types';
+import { BoatInventory, getRoleLabel, Role } from '../types';
 import { Ship, Users, CheckCircle2, Circle, ArrowLeft, ArrowRight, CheckSquare, Square, RotateCcw, Shield, ArrowDownAZ, ArrowUpNarrowWide, Settings, Wind, Anchor, AlertTriangle } from 'lucide-react';
 import { PairingBoard } from './PairingBoard';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -239,7 +239,7 @@ export const SessionManager: React.FC = () => {
                         )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${person.role === Role.VOLUNTEER ? 'bg-orange-100 text-orange-700' : 'bg-sky-100 text-sky-700'}`}>{RoleLabel[person.role]}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${person.role === Role.VOLUNTEER ? 'bg-orange-100 text-orange-700' : 'bg-sky-100 text-sky-700'}`}>{getRoleLabel(person.role, person.gender)}</span>
                     </div>
                   </div>
                   {isPresent ? <CheckCircle2 className="text-brand-600" size={24} /> : <Circle className="text-slate-300" size={24} />}

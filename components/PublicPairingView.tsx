@@ -1,12 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { BoatTypeLabel, RoleLabel, Role, TEAM_COLORS, BoatType } from '../types';
+import { BoatTypeLabel, getRoleLabel, Role, TEAM_COLORS, BoatType, Gender } from '../types';
 import { Ship, Calendar, AlertCircle, Printer } from 'lucide-react';
 
 interface PublicMember {
   name: string;
   role: Role;
+  gender?: Gender;
 }
 
 interface PublicTeam {
@@ -114,7 +115,7 @@ export const PublicPairingView: React.FC = () => {
                           {member.name}
                         </span>
                         <span className="text-xs text-slate-500 mr-auto font-medium">
-                          {RoleLabel[member.role]}
+                          {getRoleLabel(member.role, member.gender || Gender.MALE)}
                         </span>
                       </div>
                     ))}
