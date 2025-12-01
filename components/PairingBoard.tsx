@@ -540,7 +540,7 @@ export const PairingBoard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {session.teams.map((team: Team, index: number) => {
                 const isDeleting = deletingItems.has(team.id);
-                if (isDeleting) return null; // Or render a placeholder? Better to animate in place
+                if (isDeleting) return null;
 
                 const boatDef = boatDefinitions.find(d => d.id === team.boatType);
                 const capacity = boatDef?.capacity || 99;
@@ -549,12 +549,10 @@ export const PairingBoard: React.FC = () => {
                 const hasWarnings = (team.warnings && team.warnings.length > 0) || isOverCapacity;
                 const colorClass = TEAM_COLORS[index % TEAM_COLORS.length];
                 
-                // Dynamic border class for errors (More intense red for Over Capacity)
                 let containerClass = colorClass;
                 if (isOverCapacity) containerClass = 'border-red-600 bg-red-100 ring-4 ring-red-200/50 shadow-lg shadow-red-100';
                 else if (hasWarnings) containerClass = 'border-amber-300 bg-amber-50';
                 
-                // Fade out animation style
                 const fadeStyle = isDeleting ? { opacity: 0, transform: 'scale(0.9)', transition: 'all 0.3s ease-out' } : {};
 
                 return (
@@ -614,14 +612,12 @@ export const PairingBoard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Warnings Text Banner */}
                 {hasWarnings && (
                     <div className={`px-3 py-1 text-sm border-b ${isOverCapacity ? 'bg-red-200 text-red-900 border-red-300 font-bold' : 'bg-amber-100 text-amber-800 border-amber-200'}`}>
                     {isOverCapacity ? `חריגה מקיבולת (${team.members.length}/${capacity})` : team.warnings?.join(', ')}
                     </div>
                 )}
 
-                {/* Members Droppable Area */}
                 <Droppable droppableId={team.id}>
                     {(provided, snapshot) => (
                     <div
@@ -636,24 +632,27 @@ export const PairingBoard: React.FC = () => {
                         const constraints = getActiveConstraintBadges(member, team.members);
                         const isMemberDeleting = deletingItems.has(member.id);
                         
-                        // Member fade style
                         const memberStyle = isMemberDeleting ? { opacity: 0, transform: 'scale(0.8)', marginBottom: '-40px' } : {};
 
                         return (
                             <Draggable key={member.id} draggableId={member.id} index={index}>
-                            {(provided, snapshot) => (
+                            {(provided, snapshot) => {
+                                // IMPORTANT: Fix transform to prevent jumping, and add rotation
+                                const transform = provided.draggableProps.style?.transform;
+                                const style = { 
+                                    ...provided.draggableProps.style, 
+                                    ...memberStyle,
+                                    transform: snapshot.isDragging && transform 
+                                        ? `${transform} rotate(3deg)` 
+                                        : transform,
+                                    transition: isMemberDeleting ? 'all 0.3s ease-out' : provided.draggableProps.style?.transition
+                                };
+
+                                return (
                                 <div
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
-                                style={{ 
-                                    ...provided.draggableProps.style, 
-                                    ...memberStyle,
-                                    // Add Rotation when Dragging
-                                    transform: snapshot.isDragging && provided.draggableProps.style?.transform 
-                                        ? `${provided.draggableProps.style.transform} rotate(3deg)` 
-                                        : provided.draggableProps.style?.transform,
-                                    transition: isMemberDeleting ? 'all 0.3s ease-out' : provided.draggableProps.style?.transition
-                                }}
+                                style={style}
                                 className={`
                                     relative group
                                     p-3 rounded-lg border flex items-center justify-between select-none
@@ -674,6 +673,8 @@ export const PairingBoard: React.FC = () => {
                                 <div 
                                     {...provided.dragHandleProps}
                                     className="p-4 -mr-2 ml-2 text-slate-400 hover:text-brand-600 bg-slate-100/50 hover:bg-slate-200/50 rounded-md flex items-center justify-center shrink-0 self-stretch cursor-grab active:cursor-grabbing touch-none"
+                                    // CRITICAL FOR MOBILE: Prevents scrolling when touching the handle
+                                    style={{ touchAction: 'none' }}
                                 >
                                     <GripVertical size={24} />
                                 </div>
@@ -690,7 +691,6 @@ export const PairingBoard: React.FC = () => {
                                       </div>
                                     </div>
 
-                                    {/* Constraint Badges */}
                                     {constraints.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mt-1">
                                             {constraints.map((c, i) => (
@@ -716,7 +716,6 @@ export const PairingBoard: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* Remove Button (X) - Top Left */}
                                 <button 
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -732,10 +731,9 @@ export const PairingBoard: React.FC = () => {
                                     <X size={14} />
                                 </button>
 
-                                {/* Swap Button */}
                                 <button 
                                     onClick={(e) => {
-                                    e.stopPropagation(); // Prevent Drag Start
+                                    e.stopPropagation();
                                     handleSwapClick(team.id, index);
                                     }}
                                     onMouseDown={(e) => e.stopPropagation()}
@@ -752,7 +750,7 @@ export const PairingBoard: React.FC = () => {
                                     {isSwappingMe ? <Check size={18} /> : <ArrowRightLeft size={18} />}
                                 </button>
                                 </div>
-                            )}
+                            )}}
                             </Draggable>
                         );
                         })}
@@ -766,7 +764,6 @@ export const PairingBoard: React.FC = () => {
         </DragDropContext>
       </div>
 
-      {/* PRINT ONLY VIEW */}
       <div className="hidden print:block space-y-8">
         <div className="text-center mb-8">
             <h1 className="text-3xl font-bold">רשימת שיבוצים לאימון</h1>
