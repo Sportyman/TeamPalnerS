@@ -149,10 +149,12 @@ export const generateSmartPairings = (
           if (teamMembers.length > 0) {
              const warnings: string[] = [];
              const hasVol = teamMembers.some(m => m.role === Role.VOLUNTEER);
-             const lowRankMembers = teamMembers.filter(m => m.role !== Role.VOLUNTEER && m.rank <= 2);
+             const boatCapacity = boatDef.capacity;
              
-             if (!hasVol && lowRankMembers.length > 0) {
-                 warnings.push('חברים ברמה נמוכה ללא מתנדב');
+             // STRICT WARNING: Multi-seat boat with members but no volunteer
+             // Logic: If capacity > 1 AND has members AND NO volunteer -> Warn
+             if (boatCapacity > 1 && !hasVol && teamMembers.length > 0) {
+                 warnings.push('צוות ללא מתנדב');
              }
              
              // Commit the team

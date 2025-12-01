@@ -72,7 +72,7 @@ export const Dashboard: React.FC = () => {
   const [newPreferredBoat, setNewPreferredBoat] = useState<string>('');
 
   // Constraint States (Add Mode)
-  const [newGenderPrefType, setNewGenderPrefType] = useState<GenderPrefType>('SAME');
+  const [newGenderPrefType, setNewGenderPrefType] = useState<GenderPrefType>('NONE');
   const [newGenderPrefStrength, setNewGenderPrefStrength] = useState<ConstraintStrength>('PREFER');
   const [newMustPair, setNewMustPair] = useState<string[]>([]);
   const [newPreferPair, setNewPreferPair] = useState<string[]>([]);
@@ -82,6 +82,28 @@ export const Dashboard: React.FC = () => {
   const boatDefinitions = currentSettings.boatDefinitions;
 
   // --- People Handlers ---
+  const formatPhoneNumber = (value: string) => {
+      // 1. Remove all non-digits
+      const digits = value.replace(/\D/g, '');
+      
+      // 2. Limit to 10 digits
+      const truncated = digits.slice(0, 10);
+      
+      // 3. Add Hyphen after 3rd digit
+      if (truncated.length > 3) {
+          return `${truncated.slice(0, 3)}-${truncated.slice(3)}`;
+      }
+      return truncated;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
+      const formatted = formatPhoneNumber(e.target.value);
+      setter(formatted);
+      if (formatted.length === 11) { // 05X-XXXXXXX is 11 chars
+           setPhoneError('');
+      }
+  };
+
   const validatePhone = (phone: string) => {
       if (!phone) return true; // Optional
       if (!PHONE_REGEX.test(phone)) {
@@ -101,7 +123,7 @@ export const Dashboard: React.FC = () => {
     setTagInput('');
     setPhoneError('');
     setNewPreferredBoat('');
-    setNewGenderPrefType('SAME');
+    setNewGenderPrefType('NONE');
     setNewGenderPrefStrength('PREFER');
     setNewMustPair([]);
     setNewPreferPair([]);
@@ -118,9 +140,6 @@ export const Dashboard: React.FC = () => {
         return;
     }
 
-    // Only save gender pref if user actually selected something meaningful (or we can just save it, and ignore if type is ALL?)
-    // For now we save what they selected.
-    
     addPerson({
       id: Date.now().toString(),
       name: newName,
@@ -342,6 +361,16 @@ export const Dashboard: React.FC = () => {
                    />
                </div>
                
+               {/* Headers for Icons */}
+               <div className="flex justify-between items-center px-2 mb-1 text-[10px] text-slate-500 font-bold">
+                   <div className="flex-1"></div>
+                   <div className="flex gap-1">
+                       <span className="w-8 text-center text-yellow-600">עדיף</span>
+                       <span className="w-8 text-center text-green-600">חובה</span>
+                       <span className="w-8 text-center text-red-600">אסור</span>
+                   </div>
+               </div>
+
                <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                    {candidates.map(p => {
                        const isMust = must.includes(p.id);
@@ -358,7 +387,7 @@ export const Dashboard: React.FC = () => {
                                    <button 
                                       type="button" 
                                       onClick={() => isPrefer ? onClear(p.id) : onToggle(p.id, 'PREFER')}
-                                      className={`p-1.5 rounded transition-colors ${isPrefer ? 'bg-yellow-100 text-yellow-600 ring-1 ring-yellow-400' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}
+                                      className={`p-1.5 w-8 flex justify-center rounded transition-colors ${isPrefer ? 'bg-yellow-100 text-yellow-600 ring-1 ring-yellow-400' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}
                                       title="מעדיף להיות עם"
                                    >
                                        <Heart size={14} className={isPrefer ? "fill-current" : ""}/>
@@ -366,7 +395,7 @@ export const Dashboard: React.FC = () => {
                                    <button 
                                       type="button" 
                                       onClick={() => isMust ? onClear(p.id) : onToggle(p.id, 'MUST')}
-                                      className={`p-1.5 rounded transition-colors ${isMust ? 'bg-green-100 text-green-600 ring-1 ring-green-400' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}
+                                      className={`p-1.5 w-8 flex justify-center rounded transition-colors ${isMust ? 'bg-green-100 text-green-600 ring-1 ring-green-400' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}
                                       title="חייב להיות עם"
                                    >
                                        <Shield size={14} />
@@ -374,7 +403,7 @@ export const Dashboard: React.FC = () => {
                                    <button 
                                       type="button" 
                                       onClick={() => isCannot ? onClear(p.id) : onToggle(p.id, 'CANNOT')}
-                                      className={`p-1.5 rounded transition-colors ${isCannot ? 'bg-red-100 text-red-600 ring-1 ring-red-400' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}
+                                      className={`p-1.5 w-8 flex justify-center rounded transition-colors ${isCannot ? 'bg-red-100 text-red-600 ring-1 ring-red-400' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}
                                       title="לא יכול להיות עם"
                                    >
                                        <Ban size={14} />
@@ -644,7 +673,7 @@ export const Dashboard: React.FC = () => {
                                         </span>
                                     ))}
                                     {/* Constraint Indicators */}
-                                    {person.genderConstraint && <span className="text-[10px] bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded border border-pink-100" title="העדפה מגדרית">מגדר</span>}
+                                    {person.genderConstraint && person.genderConstraint.type !== 'NONE' && <span className="text-[10px] bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded border border-pink-100" title="העדפה מגדרית">מגדר</span>}
                                     {(person.mustPairWith?.length || 0) > 0 && <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded border border-green-100" title="התניות חובה">חובה</span>}
                                     {(person.preferPairWith?.length || 0) > 0 && <span className="text-[10px] bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded border border-yellow-100" title="התניות העדפה">העדפה</span>}
                                     {(person.cannotPairWith?.length || 0) > 0 && <span className="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-100" title="התניות שלילה">שלילה</span>}
@@ -706,7 +735,7 @@ export const Dashboard: React.FC = () => {
                     <input 
                         type="tel" 
                         value={newPhone} 
-                        onChange={e => setNewPhone(e.target.value)} 
+                        onChange={e => handlePhoneChange(e, setNewPhone)} 
                         className={`w-full border rounded-lg p-2 ${phoneError ? 'border-red-500' : ''}`}
                         placeholder="05X-XXXXXXX"
                         dir="ltr"
@@ -808,7 +837,10 @@ export const Dashboard: React.FC = () => {
                     </div>
                 </div>
 
-                <button type="submit" className="w-full bg-brand-600 text-white py-3 rounded-lg font-bold hover:bg-brand-700">שמור משתתף</button>
+                <div className="flex gap-2">
+                    <button type="submit" className="flex-1 bg-brand-600 text-white py-3 rounded-lg font-bold hover:bg-brand-700">שמור משתתף</button>
+                    <button type="button" onClick={resetAddForm} className="bg-slate-200 text-slate-700 px-4 py-3 rounded-lg font-bold hover:bg-slate-300">ביטול</button>
+                </div>
             </form>
           </div>
         </div>
@@ -842,7 +874,11 @@ export const Dashboard: React.FC = () => {
                     <input 
                         type="tel" 
                         value={editingPerson.phone || ''} 
-                        onChange={e => setEditingPerson({...editingPerson, phone: e.target.value})} 
+                        onChange={e => {
+                            const formatted = formatPhoneNumber(e.target.value);
+                            setEditingPerson({...editingPerson, phone: formatted});
+                            if(formatted.length === 11) setPhoneError('');
+                        }} 
                         className={`w-full border rounded-lg p-2 ${phoneError ? 'border-red-500' : ''}`}
                         placeholder="05X-XXXXXXX"
                         dir="ltr"
@@ -890,7 +926,7 @@ export const Dashboard: React.FC = () => {
                                  <div>
                                     <label className="block text-xs font-bold text-slate-700 mb-1">התניית מין</label>
                                     <select 
-                                        value={editingPerson.genderConstraint?.type || 'SAME'}
+                                        value={editingPerson.genderConstraint?.type || 'NONE'}
                                         onChange={e => setEditingPerson({...editingPerson, genderConstraint: { ...(editingPerson.genderConstraint || { strength: 'PREFER' }), type: e.target.value as GenderPrefType }})}
                                         className="w-full border rounded p-1.5 text-xs"
                                     >
@@ -903,7 +939,7 @@ export const Dashboard: React.FC = () => {
                                     <label className="block text-xs font-bold text-slate-700 mb-1">רמת חשיבות</label>
                                     <select 
                                         value={editingPerson.genderConstraint?.strength || 'PREFER'}
-                                        onChange={e => setEditingPerson({...editingPerson, genderConstraint: { ...(editingPerson.genderConstraint || { type: 'SAME' }), strength: e.target.value as ConstraintStrength }})}
+                                        onChange={e => setEditingPerson({...editingPerson, genderConstraint: { ...(editingPerson.genderConstraint || { type: 'NONE' }), strength: e.target.value as ConstraintStrength }})}
                                         className="w-full border rounded p-1.5 text-xs"
                                     >
                                         <option value="PREFER">העדפה בלבד</option>
@@ -944,7 +980,10 @@ export const Dashboard: React.FC = () => {
                     </div>
                 </div>
                 
-                <button type="submit" className="w-full bg-brand-600 text-white py-3 rounded-lg font-bold hover:bg-brand-700">עדכן פרטים</button>
+                <div className="flex gap-2">
+                    <button type="submit" className="flex-1 bg-brand-600 text-white py-3 rounded-lg font-bold hover:bg-brand-700">עדכן פרטים</button>
+                    <button type="button" onClick={() => setEditingPerson(null)} className="bg-slate-200 text-slate-700 px-4 py-3 rounded-lg font-bold hover:bg-slate-300">ביטול</button>
+                </div>
             </form>
           </div>
         </div>

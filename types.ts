@@ -22,7 +22,7 @@ export const GenderLabel: Record<Gender, string> = {
 };
 
 // Gender Preference Definitions
-export type GenderPrefType = 'SAME' | 'MALE' | 'FEMALE';
+export type GenderPrefType = 'NONE' | 'MALE' | 'FEMALE';
 export type ConstraintStrength = 'MUST' | 'PREFER';
 
 export interface GenderConstraint {
@@ -31,7 +31,7 @@ export interface GenderConstraint {
 }
 
 export const GenderPrefLabels: Record<GenderPrefType, string> = {
-    'SAME': 'בני אותו מין',
+    'NONE': 'ללא העדפה',
     'MALE': 'גברים בלבד',
     'FEMALE': 'נשים בלבד'
 };
@@ -81,7 +81,7 @@ export interface UserPermission {
   allowedClubs: ClubID[];
 }
 
-export const APP_VERSION = '2.8.0';
+export const APP_VERSION = '2.8.5';
 
 export const TEAM_COLORS = [
   'bg-blue-50 border-blue-200',      

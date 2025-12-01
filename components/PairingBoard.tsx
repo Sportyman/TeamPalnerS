@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { Team, Role, RoleLabel, BoatType, TEAM_COLORS, Person } from '../types';
-import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Dices, X, Plus, Trash2, Search, UserPlus, Lock, ShieldCheck, Heart, UserX, Shield } from 'lucide-react';
+import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Shuffle, X, Plus, Trash2, Search, UserPlus, Lock, ShieldCheck, Heart, UserX, Shield } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 // Pairing Board Component
@@ -235,6 +235,7 @@ export const PairingBoard: React.FC = () => {
               badges.push({
                   type: 'SUCCESS',
                   label: `צוות עם: ${matchedPartners.map(p => p.name.split(' ')[0]).join(', ')}`,
+                  title: `משובץ בהצלחה עם ${matchedPartners.map(p => p.name).join(', ')} (חובה)`,
                   icon: <ShieldCheck size={10} />
               });
           }
@@ -247,6 +248,7 @@ export const PairingBoard: React.FC = () => {
               badges.push({
                   type: 'INFO',
                   label: `מועדף עם: ${matchedPartners.map(p => p.name.split(' ')[0]).join(', ')}`,
+                  title: `משובץ עם ${matchedPartners.map(p => p.name).join(', ')} (העדפה)`,
                   icon: <Heart size={10} className="fill-current" />
               });
           }
@@ -259,22 +261,21 @@ export const PairingBoard: React.FC = () => {
               badges.push({
                   type: 'DANGER',
                   label: `התנגשות: ${conflictPartners.map(p => p.name.split(' ')[0]).join(', ')}`,
+                  title: `אזהרה: המשתמש חסום לשיבוץ עם ${conflictPartners.map(p => p.name).join(', ')}`,
                   icon: <UserX size={10} />
               });
           }
       }
 
       // 4. Gender Preference
-      if (member.genderConstraint) {
-          // Visual indication that preference exists
+      if (member.genderConstraint && member.genderConstraint.type !== 'NONE') {
            if (member.genderConstraint.strength === 'MUST') {
                 badges.push({
                     type: 'INFO',
                     label: 'חובת מגדר',
+                    title: `מוגדרת חובת שיבוץ ${member.genderConstraint.type === 'MALE' ? 'גברים' : 'נשים'} בלבד`,
                     icon: <Shield size={10} />
                 });
-           } else {
-               // Only show prefer if relevant? or always? Keep it clean
            }
       }
 
@@ -448,7 +449,7 @@ export const PairingBoard: React.FC = () => {
                   className="p-2 rounded-lg border border-slate-200 text-brand-600 hover:bg-brand-50"
                   title="ערבב מחדש"
                >
-                 <Dices size={18} />
+                 <Shuffle size={18} />
                </button>
                <div className="w-px bg-slate-200 mx-1"></div>
                <button
@@ -623,7 +624,10 @@ export const PairingBoard: React.FC = () => {
                                     {constraints.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mt-1">
                                             {constraints.map((c, i) => (
-                                                <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 border ${
+                                                <span 
+                                                    key={i} 
+                                                    title={c.title}
+                                                    className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 border cursor-help ${
                                                     c.type === 'SUCCESS' ? 'bg-green-100 text-green-700 border-green-200' :
                                                     c.type === 'DANGER' ? 'bg-red-100 text-red-700 border-red-200' :
                                                     c.type === 'INFO' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :

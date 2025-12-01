@@ -49,7 +49,7 @@ const INITIAL_PEOPLE: Person[] = [
     { id: 's1', clubId: 'SAILING', name: 'גיורא איילנד', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 5, phone: '054-1111111', tags: ['סקיפר'] },
     { id: 's2', clubId: 'SAILING', name: 'תמר זנדברג', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 4, phone: '054-2222222', tags: ['סקיפר'] },
     { id: 's3', clubId: 'SAILING', name: 'עופר שלח', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 3, phone: '054-3333333', tags: ['איש צוות'] },
-    { id: 's4', clubId: 'SAILING', name: 'מרב מיכאלי', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 5, phone: '054-4444444', tags: ['סקיפר'], genderConstraint: { type: 'SAME', strength: 'PREFER' } },
+    { id: 's4', clubId: 'SAILING', name: 'מרב מיכאלי', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 5, phone: '054-4444444', tags: ['סקיפר'], genderConstraint: { type: 'FEMALE', strength: 'PREFER' } },
     // Sailing - Members
     { id: 's5', clubId: 'SAILING', name: 'נורית פלד', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2, phone: '055-5555555', tags: [] },
     { id: 's6', clubId: 'SAILING', name: 'אמיר חצרוני', gender: Gender.MALE, role: Role.MEMBER, rank: 3, phone: '055-6666666', tags: [], cannotPairWith: ['s8'] },
@@ -643,10 +643,10 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'etgarim-storage',
-      version: 15.0, // Bump to force reload of mock data with new structure
+      version: 16.0, // Bump to force reload of mock data with new structure
       migrate: (persistedState: any, version: number) => {
         let state = persistedState as AppState;
-        if (version < 15) {
+        if (version < 16) {
              state.people = INITIAL_PEOPLE; 
         }
         return state;
