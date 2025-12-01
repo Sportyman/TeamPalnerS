@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../store';
 import { Team, Role, RoleLabel, BoatType, TEAM_COLORS, Person } from '../types';
-import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Dices, X, Plus, Trash2, Search, UserPlus, Lock } from 'lucide-react';
+import { GripVertical, AlertTriangle, ArrowRightLeft, Check, Printer, Share2, Link as LinkIcon, Eye, Send, RotateCcw, RotateCw, Star, Dices, X, Plus, Trash2, Search, UserPlus, Lock, ShieldCheck, Heart, UserX, Shield } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 // Pairing Board Component
@@ -223,6 +223,63 @@ export const PairingBoard: React.FC = () => {
   });
 
   const filteredPeople = allClubPeople.filter(p => p.name.includes(memberSearch));
+
+  // --- Logic for displaying active constraints ---
+  const getActiveConstraintBadges = (member: Person, teamMembers: Person[]) => {
+      const badges = [];
+
+      // 1. Must Pair With (Hard)
+      if (member.mustPairWith && member.mustPairWith.length > 0) {
+          const matchedPartners = teamMembers.filter(m => m.id !== member.id && member.mustPairWith?.includes(m.id));
+          if (matchedPartners.length > 0) {
+              badges.push({
+                  type: 'SUCCESS',
+                  label: `צוות עם: ${matchedPartners.map(p => p.name.split(' ')[0]).join(', ')}`,
+                  icon: <ShieldCheck size={10} />
+              });
+          }
+      }
+
+      // 2. Prefer Pair With (Soft)
+      if (member.preferPairWith && member.preferPairWith.length > 0) {
+          const matchedPartners = teamMembers.filter(m => m.id !== member.id && member.preferPairWith?.includes(m.id));
+          if (matchedPartners.length > 0) {
+              badges.push({
+                  type: 'INFO',
+                  label: `מועדף עם: ${matchedPartners.map(p => p.name.split(' ')[0]).join(', ')}`,
+                  icon: <Heart size={10} className="fill-current" />
+              });
+          }
+      }
+
+      // 3. Conflicts (Blacklist)
+      if (member.cannotPairWith && member.cannotPairWith.length > 0) {
+          const conflictPartners = teamMembers.filter(m => m.id !== member.id && member.cannotPairWith?.includes(m.id));
+          if (conflictPartners.length > 0) {
+              badges.push({
+                  type: 'DANGER',
+                  label: `התנגשות: ${conflictPartners.map(p => p.name.split(' ')[0]).join(', ')}`,
+                  icon: <UserX size={10} />
+              });
+          }
+      }
+
+      // 4. Gender Preference
+      if (member.genderConstraint) {
+          // Visual indication that preference exists
+           if (member.genderConstraint.strength === 'MUST') {
+                badges.push({
+                    type: 'INFO',
+                    label: 'חובת מגדר',
+                    icon: <Shield size={10} />
+                });
+           } else {
+               // Only show prefer if relevant? or always? Keep it clean
+           }
+      }
+
+      return badges;
+  };
 
   return (
     <div className="space-y-6 pb-20"> 
@@ -518,6 +575,7 @@ export const PairingBoard: React.FC = () => {
                     >
                         {team.members.map((member: Person, index: number) => {
                         const isSwappingMe = swapSource?.teamId === team.id && swapSource?.index === index;
+                        const constraints = getActiveConstraintBadges(member, team.members);
                         
                         return (
                             <Draggable key={member.id} draggableId={member.id} index={index}>
@@ -544,13 +602,14 @@ export const PairingBoard: React.FC = () => {
                                 <div 
                                     {...provided.dragHandleProps}
                                     style={{ touchAction: 'none' }}
-                                    className="p-4 -mr-2 ml-2 text-slate-400 hover:text-brand-600 bg-slate-100/50 hover:bg-slate-200/50 rounded-md cursor-grab active:cursor-grabbing flex items-center justify-center shrink-0"
+                                    className="p-4 -mr-2 ml-2 text-slate-400 hover:text-brand-600 bg-slate-100/50 hover:bg-slate-200/50 rounded-md cursor-grab active:cursor-grabbing flex items-center justify-center shrink-0 self-stretch"
                                 >
                                     <GripVertical size={24} />
                                 </div>
                                 
                                 <div className="flex-1 flex flex-col px-1">
-                                    <span className="font-bold text-slate-900 text-lg">{member.name}</span>
+                                    <span className="font-bold text-slate-900 text-lg leading-tight">{member.name}</span>
+                                    
                                     <div className="flex items-center gap-2 mt-1">
                                       <span className="text-sm text-slate-500 uppercase font-medium">{RoleLabel[member.role]}</span>
                                       <div className="flex">
@@ -559,6 +618,23 @@ export const PairingBoard: React.FC = () => {
                                         ))}
                                       </div>
                                     </div>
+
+                                    {/* Constraint Badges */}
+                                    {constraints.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {constraints.map((c, i) => (
+                                                <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 border ${
+                                                    c.type === 'SUCCESS' ? 'bg-green-100 text-green-700 border-green-200' :
+                                                    c.type === 'DANGER' ? 'bg-red-100 text-red-700 border-red-200' :
+                                                    c.type === 'INFO' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
+                                                    'bg-blue-100 text-blue-700 border-blue-200'
+                                                }`}>
+                                                    {c.icon} {c.label}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {member.notes && (
                                        <div className="text-xs text-red-600 truncate mt-1 max-w-[140px]" title={member.notes}>
                                           {member.notes}

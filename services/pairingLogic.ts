@@ -44,13 +44,49 @@ export const generateSmartPairings = (
   // Sort multi-seat by capacity descending (fill big boats first)
   multiSeatBoats.sort((a, b) => b.capacity - a.capacity);
 
+  // Helper to check constraints
+  const isCompatible = (person: Person, currentTeam: Person[]): boolean => {
+      // 1. Check Hard Blacklist (Cannot Pair With)
+      if (person.cannotPairWith) {
+          for (const teammate of currentTeam) {
+              if (person.cannotPairWith.includes(teammate.id)) return false;
+          }
+      }
+      // Check reciprocity of blacklist
+      for (const teammate of currentTeam) {
+          if (teammate.cannotPairWith && teammate.cannotPairWith.includes(person.id)) return false;
+      }
+      
+      // 2. Gender Constraints (Simplified for now - only hard blocks if we implemented Strict Mode)
+      // For now, we allow the match but rely on UI warnings, unless it's a "Must"
+      // Implementing strict logic would require more complex backtracking.
+      
+      return true;
+  };
+
+  // Helper to handle "Must Pair With" groups (Clusters)
+  // This function tries to find people who MUST be together and moves them to the front of the queue
+  // Note: This is a basic implementation. Complex chains (A->B->C) might need graph traversal.
+  const pullMustPairPartners = (primary: Person, sourceList: Person[]): Person[] => {
+      if (!primary.mustPairWith || primary.mustPairWith.length === 0) return [];
+      
+      const partners: Person[] = [];
+      primary.mustPairWith.forEach(partnerId => {
+          const idx = sourceList.findIndex(p => p.id === partnerId);
+          if (idx !== -1) {
+              partners.push(sourceList[idx]);
+              sourceList.splice(idx, 1); // Remove from pool
+          }
+      });
+      return partners;
+  };
+
   // --- PASS 1: Fill Multi-Seat Boats (STRICT: Must have a Member) ---
   for (const boatDef of multiSeatBoats) {
       let count = currentInventory[boatDef.id] || 0;
       
       while (count > 0 && (availableVols.length > 0 || availableMems.length > 0)) {
-          // CRITICAL FIX: If no members are left, DO NOT use a multi-seat boat yet.
-          // Save the boat and the volunteers for the Single Pass or Overflow Pass.
+          
           if (availableMems.length === 0) {
               break; 
           }
@@ -59,23 +95,53 @@ export const generateSmartPairings = (
           
           // 1. Assign Captain (Volunteer)
           if (availableVols.length > 0) {
-              teamMembers.push(availableVols.shift()!);
+              const vol = availableVols.shift()!;
+              teamMembers.push(vol);
+              
+              // Check if vol has any attached partners (rare but possible)
+              const volPartners = pullMustPairPartners(vol, availableVols); // Look in vol list
+              teamMembers.push(...volPartners);
+              // Also check mem list? usually vol pairs with vol or specific member
           }
 
           // 2. Fill remaining spots with Members
-          const spotsLeft = boatDef.capacity - teamMembers.length;
-          
-          for (let i = 0; i < spotsLeft; i++) {
-              if (availableMems.length > 0) {
-                  teamMembers.push(availableMems.shift()!);
-              } else if (availableVols.length > 0) {
-                  // Option: Fill with extra volunteers? 
-                  // In strict pass, we usually prefer to save volunteers for single boats if members are done.
-                  // But if we already started the boat (because we had a member), we might fill it.
-                  // Logic: Only fill if we actually added a member in this loop?
-                  // Simplified: Just fill up.
-                  teamMembers.push(availableVols.shift()!);
-              }
+          // Try to fill up to capacity
+          while (teamMembers.length < boatDef.capacity) {
+               if (availableMems.length > 0) {
+                   // Try to find a compatible member
+                   // Preference logic: Try to find someone who prefers current team members
+                   let candidateIdx = -1;
+                   
+                   // Priority 1: Someone who is preferred by current team or prefers current team
+                   candidateIdx = availableMems.findIndex(m => {
+                       if (!isCompatible(m, teamMembers)) return false;
+                       // Check Preference Match
+                       const prefersTeam = m.preferPairWith?.some(id => teamMembers.find(tm => tm.id === id));
+                       const teamPrefers = teamMembers.some(tm => tm.preferPairWith?.includes(m.id));
+                       return prefersTeam || teamPrefers;
+                   });
+
+                   // Priority 2: Anyone compatible
+                   if (candidateIdx === -1) {
+                       candidateIdx = availableMems.findIndex(m => isCompatible(m, teamMembers));
+                   }
+
+                   // If absolutely no one compatible found (rare), just take next (and let UI show warning) 
+                   // or skip boat? Let's take next for now to ensure everyone gets a boat.
+                   if (candidateIdx === -1) candidateIdx = 0;
+
+                   const mem = availableMems.splice(candidateIdx, 1)[0];
+                   teamMembers.push(mem);
+
+                   // Pull attached partners (Must Pair)
+                   const partners = pullMustPairPartners(mem, availableMems);
+                   teamMembers.push(...partners);
+               } else if (availableVols.length > 0 && teamMembers.length < boatDef.capacity) {
+                   // Fill with extra volunteers
+                   teamMembers.push(availableVols.shift()!);
+               } else {
+                   break; // No one left
+               }
           }
 
           // Validation: Did we actually create a valid team?

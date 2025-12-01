@@ -40,8 +40,8 @@ const INITIAL_PEOPLE: Person[] = [
     // Kayak - Members
     { id: 'k5', clubId: 'KAYAK', name: 'דניאל אברהמי', gender: Gender.MALE, role: Role.MEMBER, rank: 1, phone: '052-5555555', notes: 'צריך תמיכה בגב', tags: ['מנוף'] },
     { id: 'k6', clubId: 'KAYAK', name: 'רונית כהן', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2, phone: '052-6666666', tags: [] },
-    { id: 'k7', clubId: 'KAYAK', name: 'אבי לוי', gender: Gender.MALE, role: Role.MEMBER, rank: 3, phone: '052-7777777', tags: [], mustPairWith: ['k9'], constraintStrength: 'PREFER' },
-    { id: 'k8', clubId: 'KAYAK', name: 'שרה נתניהו', gender: Gender.FEMALE, role: Role.MEMBER, rank: 1, phone: '052-8888888', tags: ['מנוף', 'שומרת נגיעה'], genderPreference: true, constraintStrength: 'MUST' },
+    { id: 'k7', clubId: 'KAYAK', name: 'אבי לוי', gender: Gender.MALE, role: Role.MEMBER, rank: 3, phone: '052-7777777', tags: [], preferPairWith: ['k9'] },
+    { id: 'k8', clubId: 'KAYAK', name: 'שרה נתניהו', gender: Gender.FEMALE, role: Role.MEMBER, rank: 1, phone: '052-8888888', tags: ['מנוף', 'שומרת נגיעה'], genderConstraint: { type: 'FEMALE', strength: 'MUST' } },
     { id: 'k9', clubId: 'KAYAK', name: 'יוסי בניון', gender: Gender.MALE, role: Role.MEMBER, rank: 4, phone: '052-9999999', tags: ['חותר עצמאי'] },
     { id: 'k10', clubId: 'KAYAK', name: 'נועה קירל', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2, phone: '053-1234567', tags: [] },
 
@@ -49,10 +49,10 @@ const INITIAL_PEOPLE: Person[] = [
     { id: 's1', clubId: 'SAILING', name: 'גיורא איילנד', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 5, phone: '054-1111111', tags: ['סקיפר'] },
     { id: 's2', clubId: 'SAILING', name: 'תמר זנדברג', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 4, phone: '054-2222222', tags: ['סקיפר'] },
     { id: 's3', clubId: 'SAILING', name: 'עופר שלח', gender: Gender.MALE, role: Role.VOLUNTEER, rank: 3, phone: '054-3333333', tags: ['איש צוות'] },
-    { id: 's4', clubId: 'SAILING', name: 'מרב מיכאלי', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 5, phone: '054-4444444', tags: ['סקיפר'], genderPreference: true },
+    { id: 's4', clubId: 'SAILING', name: 'מרב מיכאלי', gender: Gender.FEMALE, role: Role.VOLUNTEER, rank: 5, phone: '054-4444444', tags: ['סקיפר'], genderConstraint: { type: 'SAME', strength: 'PREFER' } },
     // Sailing - Members
     { id: 's5', clubId: 'SAILING', name: 'נורית פלד', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2, phone: '055-5555555', tags: [] },
-    { id: 's6', clubId: 'SAILING', name: 'אמיר חצרוני', gender: Gender.MALE, role: Role.MEMBER, rank: 3, phone: '055-6666666', tags: [], cannotPairWith: ['s8'], constraintStrength: 'MUST' },
+    { id: 's6', clubId: 'SAILING', name: 'אמיר חצרוני', gender: Gender.MALE, role: Role.MEMBER, rank: 3, phone: '055-6666666', tags: [], cannotPairWith: ['s8'] },
     { id: 's7', clubId: 'SAILING', name: 'גלית גוטמן', gender: Gender.FEMALE, role: Role.MEMBER, rank: 1, phone: '055-7777777', tags: ['כסא גלגלים'] },
     { id: 's8', clubId: 'SAILING', name: 'אייל ברקוביץ', gender: Gender.MALE, role: Role.MEMBER, rank: 4, phone: '055-8888888', tags: ['חותר חזק'] },
     { id: 's9', clubId: 'SAILING', name: 'אופירה אסייג', gender: Gender.FEMALE, role: Role.MEMBER, rank: 2, phone: '055-9999999', tags: [] },
@@ -189,8 +189,6 @@ export const useAppStore = create<AppState>()(
       }),
 
       removeClub: (id) => set(state => {
-          // IMPORTANT: If we are deleting the active club, reset activeClub to null
-          // to trigger the protected route redirect and prevent zombie state.
           const isActive = state.activeClub === id;
           return {
               clubs: state.clubs.filter(c => c.id !== id),
@@ -351,8 +349,6 @@ export const useAppStore = create<AppState>()(
           const currentSettings = state.clubSettings[activeClub];
           const currentSession = state.sessions[activeClub];
           
-          // Rebuild inventory mapping
-          // Keep existing values if ID exists, else use defaultCount
           const newInventory: BoatInventory = {};
           defs.forEach(d => {
               if (currentSession.inventory[d.id] !== undefined) {
@@ -567,11 +563,9 @@ export const useAppStore = create<AppState>()(
         const person = people.find(p => p.id === personId);
         if (!person) return;
         
-        // Remove from source
         let newTeams = currentSession.teams.map(t => ({
             ...t, members: t.members.filter(m => m.id !== personId)
         }));
-        // Add to target
         newTeams = newTeams.map(t => t.id === targetTeamId ? { ...t, members: [...t.members, person] } : t);
 
         set(state => ({
@@ -649,10 +643,10 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'etgarim-storage',
-      version: 13.0, // Force migration to load constraints demo data
+      version: 15.0, // Bump to force reload of mock data with new structure
       migrate: (persistedState: any, version: number) => {
         let state = persistedState as AppState;
-        if (version < 13) {
+        if (version < 15) {
              state.people = INITIAL_PEOPLE; 
         }
         return state;

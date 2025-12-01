@@ -21,6 +21,21 @@ export const GenderLabel: Record<Gender, string> = {
   [Gender.FEMALE]: 'נקבה',
 };
 
+// Gender Preference Definitions
+export type GenderPrefType = 'SAME' | 'MALE' | 'FEMALE';
+export type ConstraintStrength = 'MUST' | 'PREFER';
+
+export interface GenderConstraint {
+    type: GenderPrefType;
+    strength: ConstraintStrength;
+}
+
+export const GenderPrefLabels: Record<GenderPrefType, string> = {
+    'SAME': 'בני אותו מין',
+    'MALE': 'גברים בלבד',
+    'FEMALE': 'נשים בלבד'
+};
+
 // Dynamic Boat Type
 export type BoatType = string;
 
@@ -41,7 +56,7 @@ export interface BoatDefinition {
   id: string;
   label: string;
   isStable: boolean; 
-  capacity: number; // New field for generic capacity (e.g., 1, 2, 6)
+  capacity: number; 
   defaultCount: number;
 }
 
@@ -49,8 +64,8 @@ export interface BoatInventory {
   [boatTypeId: string]: number;
 }
 
-// Club Definitions - Now Dynamic
-export type ClubID = string; // Was enum, now string for dynamic creation
+// Club Definitions
+export type ClubID = string; 
 
 export interface Club {
     id: ClubID;
@@ -66,7 +81,7 @@ export interface UserPermission {
   allowedClubs: ClubID[];
 }
 
-export const APP_VERSION = '2.6.0';
+export const APP_VERSION = '2.8.0';
 
 export const TEAM_COLORS = [
   'bg-blue-50 border-blue-200',      
@@ -100,13 +115,15 @@ export interface Person {
   rank: number;
   notes?: string;
   
-  // New Pairing Constraints
-  preferredBoatType?: string; // Optional boat ID constraint
+  // Pairing Constraints
+  preferredBoatType?: string; 
   
-  genderPreference?: boolean; // If true, prefers same gender
-  mustPairWith?: string[]; // IDs of people they want to be with (Whitelist)
-  cannotPairWith?: string[]; // IDs of people they cannot be with (Blacklist)
-  constraintStrength?: 'MUST' | 'PREFER'; // Default is PREFER
+  // New Granular Constraints
+  genderConstraint?: GenderConstraint;
+  
+  mustPairWith?: string[];   // Hard constraint (Green)
+  preferPairWith?: string[]; // Soft constraint (Yellow)
+  cannotPairWith?: string[]; // Hard negative (Red)
 }
 
 export interface Team {

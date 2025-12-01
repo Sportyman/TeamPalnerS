@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../store';
-import { Role, RoleLabel, Person, Gender, GenderLabel, BoatDefinition } from '../types';
-import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar, Plus, Anchor, Wind, Users2, ShieldAlert, CheckSquare, HelpCircle, AlertOctagon } from 'lucide-react';
+import { Role, RoleLabel, Person, Gender, GenderLabel, BoatDefinition, GenderPrefType, GenderPrefLabels, ConstraintStrength } from '../types';
+import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar, Plus, Anchor, Wind, Users2, ShieldAlert, AlertOctagon, Heart, Ban, Shield } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 type ViewMode = 'MENU' | 'PEOPLE' | 'INVENTORY';
@@ -19,7 +19,7 @@ export const Dashboard: React.FC = () => {
       removePerson, 
       restoreDemoData,
       clubSettings,
-      saveBoatDefinitions // Use the new Bulk Action
+      saveBoatDefinitions 
     } = useAppStore();
   
   const navigate = useNavigate();
@@ -33,7 +33,6 @@ export const Dashboard: React.FC = () => {
     else setView('MENU');
   }, [searchParams]);
 
-  // Safety check
   if (!activeClub) {
       return null;
   }
@@ -46,7 +45,6 @@ export const Dashboard: React.FC = () => {
   const [hasChanges, setHasChanges] = useState(false);
   
   useEffect(() => {
-      // Load initial state into draft
       setDraftDefs(currentSettings.boatDefinitions);
       setHasChanges(false);
   }, [currentSettings.boatDefinitions, activeClub]);
@@ -74,11 +72,11 @@ export const Dashboard: React.FC = () => {
   const [newPreferredBoat, setNewPreferredBoat] = useState<string>('');
 
   // Constraint States (Add Mode)
-  const [newGenderPref, setNewGenderPref] = useState(false);
-  const [newStrength, setNewStrength] = useState<'MUST' | 'PREFER'>('PREFER');
+  const [newGenderPrefType, setNewGenderPrefType] = useState<GenderPrefType>('SAME');
+  const [newGenderPrefStrength, setNewGenderPrefStrength] = useState<ConstraintStrength>('PREFER');
   const [newMustPair, setNewMustPair] = useState<string[]>([]);
+  const [newPreferPair, setNewPreferPair] = useState<string[]>([]);
   const [newCannotPair, setNewCannotPair] = useState<string[]>([]);
-  const [partnerSelectId, setPartnerSelectId] = useState(''); // For the dropdown
 
   const clubPeople = people.filter(p => p.clubId === activeClub);
   const boatDefinitions = currentSettings.boatDefinitions;
@@ -103,11 +101,11 @@ export const Dashboard: React.FC = () => {
     setTagInput('');
     setPhoneError('');
     setNewPreferredBoat('');
-    setNewGenderPref(false);
-    setNewStrength('PREFER');
+    setNewGenderPrefType('SAME');
+    setNewGenderPrefStrength('PREFER');
     setNewMustPair([]);
+    setNewPreferPair([]);
     setNewCannotPair([]);
-    setPartnerSelectId('');
     setIsAddFormOpen(false); 
   };
 
@@ -120,6 +118,9 @@ export const Dashboard: React.FC = () => {
         return;
     }
 
+    // Only save gender pref if user actually selected something meaningful (or we can just save it, and ignore if type is ALL?)
+    // For now we save what they selected.
+    
     addPerson({
       id: Date.now().toString(),
       name: newName,
@@ -130,9 +131,9 @@ export const Dashboard: React.FC = () => {
       notes: newNotes,
       tags: newTags,
       preferredBoatType: newPreferredBoat || undefined,
-      genderPreference: newGenderPref,
-      constraintStrength: newStrength,
+      genderConstraint: { type: newGenderPrefType, strength: newGenderPrefStrength },
       mustPairWith: newMustPair,
+      preferPairWith: newPreferPair,
       cannotPairWith: newCannotPair
     });
     
@@ -187,58 +188,54 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // --- Partner Constraint Handlers (Generic for Add/Edit) ---
-  const handleAddPartnerConstraint = (
-      type: 'MUST' | 'CANNOT', 
-      personIdToAdd: string, 
-      isEditMode: boolean
-  ) => {
-      if (!personIdToAdd) return;
-      
+  // --- Relationship Manager Logic ---
+  const toggleRelationship = (targetId: string, type: 'MUST' | 'PREFER' | 'CANNOT', isEditMode: boolean) => {
       if (isEditMode && editingPerson) {
-          if (type === 'MUST') {
-              const current = editingPerson.mustPairWith || [];
-              if (!current.includes(personIdToAdd)) {
-                   setEditingPerson({ ...editingPerson, mustPairWith: [...current, personIdToAdd] });
-              }
-          } else {
-              const current = editingPerson.cannotPairWith || [];
-              if (!current.includes(personIdToAdd)) {
-                   setEditingPerson({ ...editingPerson, cannotPairWith: [...current, personIdToAdd] });
-              }
-          }
+          let must = editingPerson.mustPairWith || [];
+          let prefer = editingPerson.preferPairWith || [];
+          let cannot = editingPerson.cannotPairWith || [];
+
+          // Clean existing for this person
+          must = must.filter(id => id !== targetId);
+          prefer = prefer.filter(id => id !== targetId);
+          cannot = cannot.filter(id => id !== targetId);
+
+          // Add to new
+          if (type === 'MUST') must.push(targetId);
+          if (type === 'PREFER') prefer.push(targetId);
+          if (type === 'CANNOT') cannot.push(targetId);
+
+          setEditingPerson({ ...editingPerson, mustPairWith: must, preferPairWith: prefer, cannotPairWith: cannot });
       } else {
           // Add Mode
-          if (type === 'MUST') {
-              if (!newMustPair.includes(personIdToAdd)) setNewMustPair([...newMustPair, personIdToAdd]);
-          } else {
-              if (!newCannotPair.includes(personIdToAdd)) setNewCannotPair([...newCannotPair, personIdToAdd]);
-          }
+          let must = newMustPair.filter(id => id !== targetId);
+          let prefer = newPreferPair.filter(id => id !== targetId);
+          let cannot = newCannotPair.filter(id => id !== targetId);
+
+          if (type === 'MUST') must.push(targetId);
+          if (type === 'PREFER') prefer.push(targetId);
+          if (type === 'CANNOT') cannot.push(targetId);
+
+          setNewMustPair(must);
+          setNewPreferPair(prefer);
+          setNewCannotPair(cannot);
       }
-      setPartnerSelectId('');
   };
 
-  const handleRemovePartnerConstraint = (
-      type: 'MUST' | 'CANNOT', 
-      personIdToRemove: string, 
-      isEditMode: boolean
-  ) => {
+  const clearRelationship = (targetId: string, isEditMode: boolean) => {
       if (isEditMode && editingPerson) {
-          if (type === 'MUST') {
-              setEditingPerson({ ...editingPerson, mustPairWith: (editingPerson.mustPairWith || []).filter(id => id !== personIdToRemove) });
-          } else {
-              setEditingPerson({ ...editingPerson, cannotPairWith: (editingPerson.cannotPairWith || []).filter(id => id !== personIdToRemove) });
-          }
+          setEditingPerson({
+              ...editingPerson,
+              mustPairWith: (editingPerson.mustPairWith || []).filter(id => id !== targetId),
+              preferPairWith: (editingPerson.preferPairWith || []).filter(id => id !== targetId),
+              cannotPairWith: (editingPerson.cannotPairWith || []).filter(id => id !== targetId)
+          });
       } else {
-          if (type === 'MUST') {
-              setNewMustPair(newMustPair.filter(id => id !== personIdToRemove));
-          } else {
-              setNewCannotPair(newCannotPair.filter(id => id !== personIdToRemove));
-          }
+          setNewMustPair(newMustPair.filter(id => id !== targetId));
+          setNewPreferPair(newPreferPair.filter(id => id !== targetId));
+          setNewCannotPair(newCannotPair.filter(id => id !== targetId));
       }
   };
-
-  // --- Inventory Draft Handlers ---
 
   const handleAddBoatDraft = (e: React.FormEvent) => {
       e.preventDefault();
@@ -255,7 +252,6 @@ export const Dashboard: React.FC = () => {
       setDraftDefs([...draftDefs, newBoat]);
       setHasChanges(true);
 
-      // Reset form
       setNewBoatName('');
       setNewBoatCount(1);
       setNewBoatCapacity(2);
@@ -311,69 +307,87 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // Helper component for constraint selector
-  const ConstraintSelector = ({ 
-      title, 
-      currentList, 
-      onAdd, 
-      onRemove, 
-      allPeople, 
-      excludeId,
-      type 
+  // --- Sub-Components for Forms ---
+
+  const RelationshipManager = ({ 
+      currentId, 
+      must, 
+      prefer, 
+      cannot, 
+      onToggle, 
+      onClear 
   }: { 
-      title: string, 
-      currentList: string[], 
-      onAdd: (id: string) => void, 
-      onRemove: (id: string) => void,
-      allPeople: Person[],
-      excludeId?: string,
-      type: 'MUST' | 'CANNOT'
+      currentId?: string, 
+      must: string[], 
+      prefer: string[], 
+      cannot: string[], 
+      onToggle: (id: string, type: 'MUST' | 'PREFER' | 'CANNOT') => void,
+      onClear: (id: string) => void
   }) => {
-      const [localSelect, setLocalSelect] = useState('');
-      const candidates = allPeople
-          .filter(p => p.id !== excludeId) // Not self
-          .filter(p => !currentList.includes(p.id)); // Not already selected
+      const [search, setSearch] = useState('');
+      const candidates = clubPeople.filter(p => p.id !== currentId && p.name.includes(search));
 
       return (
-          <div className={`p-3 rounded-lg border ${type === 'MUST' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-              <div className="text-xs font-bold mb-2 flex items-center gap-1">
-                  {type === 'MUST' ? <Users2 size={14} className="text-green-600"/> : <ShieldAlert size={14} className="text-red-600"/>}
-                  <span className={type === 'MUST' ? 'text-green-800' : 'text-red-800'}>{title}</span>
-              </div>
-              <div className="flex gap-2 mb-2">
-                  <select 
-                      className="flex-1 text-sm border-slate-300 rounded p-1"
-                      value={localSelect}
-                      onChange={e => setLocalSelect(e.target.value)}
-                  >
-                      <option value="">בחר משתתף...</option>
-                      {candidates.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                  <button 
-                      type="button" 
-                      onClick={() => { onAdd(localSelect); setLocalSelect(''); }}
-                      disabled={!localSelect}
-                      className="bg-white border px-2 rounded text-xs font-bold disabled:opacity-50"
-                  >
-                      הוסף
-                  </button>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                  {currentList.map(pid => {
-                      const pName = allPeople.find(p => p.id === pid)?.name || 'לא ידוע';
-                      return (
-                          <span key={pid} className="bg-white border px-2 py-0.5 rounded text-xs flex items-center gap-1 shadow-sm">
-                              {pName} 
-                              <button type="button" onClick={() => onRemove(pid)}><X size={10} /></button>
-                          </span>
-                      )
-                  })}
-              </div>
+          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+               <div className="flex items-center justify-between mb-2">
+                   <div className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                       <Users2 size={16} className="text-brand-600"/> מנהל קשרים והעדפות
+                   </div>
+                   <input 
+                      type="text" 
+                      placeholder="חפש חבר..." 
+                      className="text-xs border rounded px-2 py-1 w-32"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                   />
+               </div>
+               
+               <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                   {candidates.map(p => {
+                       const isMust = must.includes(p.id);
+                       const isPrefer = prefer.includes(p.id);
+                       const isCannot = cannot.includes(p.id);
+
+                       return (
+                           <div key={p.id} className="bg-white p-2 rounded border flex items-center justify-between shadow-sm">
+                               <div className="flex flex-col">
+                                   <span className="text-xs font-bold text-slate-700">{p.name}</span>
+                                   <span className="text-[10px] text-slate-400">{RoleLabel[p.role]}</span>
+                               </div>
+                               <div className="flex gap-1">
+                                   <button 
+                                      type="button" 
+                                      onClick={() => isPrefer ? onClear(p.id) : onToggle(p.id, 'PREFER')}
+                                      className={`p-1.5 rounded transition-colors ${isPrefer ? 'bg-yellow-100 text-yellow-600 ring-1 ring-yellow-400' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}
+                                      title="מעדיף להיות עם"
+                                   >
+                                       <Heart size={14} className={isPrefer ? "fill-current" : ""}/>
+                                   </button>
+                                   <button 
+                                      type="button" 
+                                      onClick={() => isMust ? onClear(p.id) : onToggle(p.id, 'MUST')}
+                                      className={`p-1.5 rounded transition-colors ${isMust ? 'bg-green-100 text-green-600 ring-1 ring-green-400' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}
+                                      title="חייב להיות עם"
+                                   >
+                                       <Shield size={14} />
+                                   </button>
+                                   <button 
+                                      type="button" 
+                                      onClick={() => isCannot ? onClear(p.id) : onToggle(p.id, 'CANNOT')}
+                                      className={`p-1.5 rounded transition-colors ${isCannot ? 'bg-red-100 text-red-600 ring-1 ring-red-400' : 'bg-slate-100 text-slate-300 hover:bg-slate-200'}`}
+                                      title="לא יכול להיות עם"
+                                   >
+                                       <Ban size={14} />
+                                   </button>
+                               </div>
+                           </div>
+                       )
+                   })}
+                   {candidates.length === 0 && <div className="text-center text-xs text-slate-400 py-4">לא נמצאו תוצאות</div>}
+               </div>
           </div>
       );
   };
-
-  // --- Render Views ---
 
   if (view === 'MENU') {
       return (
@@ -510,10 +524,6 @@ export const Dashboard: React.FC = () => {
                 )}
                 
                 <div className="space-y-4">
-                    {draftDefs.length === 0 && (
-                        <p className="text-center text-slate-500 py-8">לא הוגדרו כלי שיט.</p>
-                    )}
-                    
                     {draftDefs.map(def => (
                         <div key={def.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                              <div className="flex-1">
@@ -634,8 +644,9 @@ export const Dashboard: React.FC = () => {
                                         </span>
                                     ))}
                                     {/* Constraint Indicators */}
-                                    {person.genderPreference && <span className="text-[10px] bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded border border-pink-100" title="העדפה מגדרית">מגדר</span>}
-                                    {(person.mustPairWith?.length || 0) > 0 && <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded border border-green-100" title="התניות חיוב">חובה</span>}
+                                    {person.genderConstraint && <span className="text-[10px] bg-pink-50 text-pink-600 px-1.5 py-0.5 rounded border border-pink-100" title="העדפה מגדרית">מגדר</span>}
+                                    {(person.mustPairWith?.length || 0) > 0 && <span className="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded border border-green-100" title="התניות חובה">חובה</span>}
+                                    {(person.preferPairWith?.length || 0) > 0 && <span className="text-[10px] bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded border border-yellow-100" title="התניות העדפה">העדפה</span>}
                                     {(person.cannotPairWith?.length || 0) > 0 && <span className="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-100" title="התניות שלילה">שלילה</span>}
                                 </div>
                             </td>
@@ -663,13 +674,6 @@ export const Dashboard: React.FC = () => {
                             </td>
                         </tr>
                     ))}
-                    {clubPeople.length === 0 && (
-                        <tr>
-                            <td colSpan={4} className="p-8 text-center text-slate-400">
-                                רשימת המשתתפים ריקה.
-                            </td>
-                        </tr>
-                    )}
                 </tbody>
             </table>
        </div>
@@ -735,7 +739,6 @@ export const Dashboard: React.FC = () => {
                             <option key={def.id} value={def.id}>{def.label}</option>
                         ))}
                     </select>
-                    <p className="text-xs text-slate-400 mt-1">השיבוץ האוטומטי ישתדל לשבץ בכלי זה בלבד</p>
                 </div>
 
                 {/* ADVANCED CONSTRAINTS SECTION */}
@@ -743,58 +746,46 @@ export const Dashboard: React.FC = () => {
                      <div className="flex items-center gap-2 mb-2 text-sm font-bold text-slate-800">
                          <AlertOctagon size={16} className="text-brand-600"/> הגדרות שיבוץ מתקדמות
                      </div>
-                     <div className="space-y-3">
-                         {/* Strength Toggle */}
-                         <div className="flex items-center justify-between bg-white p-2 rounded border">
-                             <div className="flex flex-col">
-                                 <span className="text-xs font-bold text-slate-700">עוצמת התניות</span>
-                                 <span className="text-[10px] text-slate-500">
-                                     {newStrength === 'MUST' ? 'חובה קריטית (עלול למנוע שיבוץ)' : 'העדפה בלבד (גמיש)'}
-                                 </span>
+                     <div className="space-y-4">
+                         
+                         {/* Gender Constraint */}
+                         <div className="bg-white p-2 rounded border border-slate-200">
+                             <div className="grid grid-cols-2 gap-2">
+                                 <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">התניית מין</label>
+                                    <select 
+                                        value={newGenderPrefType}
+                                        onChange={e => setNewGenderPrefType(e.target.value as GenderPrefType)}
+                                        className="w-full border rounded p-1.5 text-xs"
+                                    >
+                                        {Object.entries(GenderPrefLabels).map(([key, label]) => (
+                                            <option key={key} value={key}>{label}</option>
+                                        ))}
+                                    </select>
+                                 </div>
+                                 <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">רמת חשיבות</label>
+                                    <select 
+                                        value={newGenderPrefStrength}
+                                        onChange={e => setNewGenderPrefStrength(e.target.value as ConstraintStrength)}
+                                        className="w-full border rounded p-1.5 text-xs"
+                                    >
+                                        <option value="PREFER">העדפה בלבד</option>
+                                        <option value="MUST">חובה קריטית</option>
+                                    </select>
+                                 </div>
                              </div>
-                             <button 
-                                type="button" 
-                                onClick={() => setNewStrength(prev => prev === 'MUST' ? 'PREFER' : 'MUST')}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${newStrength === 'MUST' ? 'bg-red-500' : 'bg-brand-500'}`}
-                             >
-                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${newStrength === 'MUST' ? 'translate-x-1' : 'translate-x-6'}`} />
-                             </button>
-                         </div>
-                         <div className="text-[10px] text-slate-500 bg-blue-50 p-2 rounded text-right">
-                             <HelpCircle size={10} className="inline ml-1"/>
-                             טיפ: מומלץ להשתמש ב"חובה" רק למקרים קריטיים (כמו מלווה רפואי). שימוש ב"העדפה" מאפשר למערכת גמישות רבה יותר.
                          </div>
 
-                         {/* Gender Pref */}
-                         <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-                             <input 
-                                type="checkbox" 
-                                checked={newGenderPref}
-                                onChange={e => setNewGenderPref(e.target.checked)}
-                                className="w-4 h-4 text-brand-600"
-                             />
-                             העדפה לשיבוץ עם בני אותו מין בלבד
-                         </label>
-
-                         {/* Partner Constraints */}
-                         <div className="grid grid-cols-2 gap-2">
-                             <ConstraintSelector 
-                                title="חייב להיות עם" 
-                                type="MUST"
-                                currentList={newMustPair}
-                                onAdd={(id) => handleAddPartnerConstraint('MUST', id, false)}
-                                onRemove={(id) => handleRemovePartnerConstraint('MUST', id, false)}
-                                allPeople={clubPeople}
-                             />
-                             <ConstraintSelector 
-                                title="לא לשבץ עם" 
-                                type="CANNOT"
-                                currentList={newCannotPair}
-                                onAdd={(id) => handleAddPartnerConstraint('CANNOT', id, false)}
-                                onRemove={(id) => handleRemovePartnerConstraint('CANNOT', id, false)}
-                                allPeople={clubPeople}
-                             />
-                         </div>
+                         {/* Relationship Manager */}
+                         <RelationshipManager 
+                             must={newMustPair}
+                             prefer={newPreferPair}
+                             cannot={newCannotPair}
+                             onToggle={(id, type) => toggleRelationship(id, type, false)}
+                             onClear={(id) => clearRelationship(id, false)}
+                             currentId="" // New person doesn't have ID yet
+                         />
                      </div>
                 </div>
 
@@ -891,63 +882,46 @@ export const Dashboard: React.FC = () => {
                      <div className="flex items-center gap-2 mb-2 text-sm font-bold text-slate-800">
                          <AlertOctagon size={16} className="text-brand-600"/> הגדרות שיבוץ מתקדמות
                      </div>
-                     <div className="space-y-3">
-                         {/* Strength Toggle */}
-                         <div className="flex items-center justify-between bg-white p-2 rounded border">
-                             <div className="flex flex-col">
-                                 <span className="text-xs font-bold text-slate-700">עוצמת התניות</span>
-                                 <span className="text-[10px] text-slate-500">
-                                     {editingPerson.constraintStrength === 'MUST' ? 'חובה קריטית (עלול למנוע שיבוץ)' : 'העדפה בלבד (גמיש)'}
-                                 </span>
+                     <div className="space-y-4">
+                         
+                         {/* Gender Constraint */}
+                         <div className="bg-white p-2 rounded border border-slate-200">
+                             <div className="grid grid-cols-2 gap-2">
+                                 <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">התניית מין</label>
+                                    <select 
+                                        value={editingPerson.genderConstraint?.type || 'SAME'}
+                                        onChange={e => setEditingPerson({...editingPerson, genderConstraint: { ...(editingPerson.genderConstraint || { strength: 'PREFER' }), type: e.target.value as GenderPrefType }})}
+                                        className="w-full border rounded p-1.5 text-xs"
+                                    >
+                                        {Object.entries(GenderPrefLabels).map(([key, label]) => (
+                                            <option key={key} value={key}>{label}</option>
+                                        ))}
+                                    </select>
+                                 </div>
+                                 <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">רמת חשיבות</label>
+                                    <select 
+                                        value={editingPerson.genderConstraint?.strength || 'PREFER'}
+                                        onChange={e => setEditingPerson({...editingPerson, genderConstraint: { ...(editingPerson.genderConstraint || { type: 'SAME' }), strength: e.target.value as ConstraintStrength }})}
+                                        className="w-full border rounded p-1.5 text-xs"
+                                    >
+                                        <option value="PREFER">העדפה בלבד</option>
+                                        <option value="MUST">חובה קריטית</option>
+                                    </select>
+                                 </div>
                              </div>
-                             <button 
-                                type="button" 
-                                onClick={() => setEditingPerson({
-                                    ...editingPerson, 
-                                    constraintStrength: editingPerson.constraintStrength === 'MUST' ? 'PREFER' : 'MUST'
-                                })}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editingPerson.constraintStrength === 'MUST' ? 'bg-red-500' : 'bg-brand-500'}`}
-                             >
-                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${editingPerson.constraintStrength === 'MUST' ? 'translate-x-1' : 'translate-x-6'}`} />
-                             </button>
-                         </div>
-                         <div className="text-[10px] text-slate-500 bg-blue-50 p-2 rounded text-right">
-                             <HelpCircle size={10} className="inline ml-1"/>
-                             טיפ: מומלץ להשתמש ב"חובה" רק למקרים קריטיים (כמו מלווה רפואי). שימוש ב"העדפה" מאפשר למערכת גמישות רבה יותר.
                          </div>
 
-                         {/* Gender Pref */}
-                         <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-                             <input 
-                                type="checkbox" 
-                                checked={editingPerson.genderPreference || false}
-                                onChange={e => setEditingPerson({...editingPerson, genderPreference: e.target.checked})}
-                                className="w-4 h-4 text-brand-600"
-                             />
-                             העדפה לשיבוץ עם בני אותו מין בלבד
-                         </label>
-
-                         {/* Partner Constraints */}
-                         <div className="grid grid-cols-2 gap-2">
-                             <ConstraintSelector 
-                                title="חייב להיות עם" 
-                                type="MUST"
-                                currentList={editingPerson.mustPairWith || []}
-                                onAdd={(id) => handleAddPartnerConstraint('MUST', id, true)}
-                                onRemove={(id) => handleRemovePartnerConstraint('MUST', id, true)}
-                                allPeople={clubPeople}
-                                excludeId={editingPerson.id}
-                             />
-                             <ConstraintSelector 
-                                title="לא לשבץ עם" 
-                                type="CANNOT"
-                                currentList={editingPerson.cannotPairWith || []}
-                                onAdd={(id) => handleAddPartnerConstraint('CANNOT', id, true)}
-                                onRemove={(id) => handleRemovePartnerConstraint('CANNOT', id, true)}
-                                allPeople={clubPeople}
-                                excludeId={editingPerson.id}
-                             />
-                         </div>
+                         {/* Relationship Manager */}
+                         <RelationshipManager 
+                             must={editingPerson.mustPairWith || []}
+                             prefer={editingPerson.preferPairWith || []}
+                             cannot={editingPerson.cannotPairWith || []}
+                             onToggle={(id, type) => toggleRelationship(id, type, true)}
+                             onClear={(id) => clearRelationship(id, true)}
+                             currentId={editingPerson.id} 
+                         />
                      </div>
                 </div>
 
