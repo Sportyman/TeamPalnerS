@@ -61,8 +61,9 @@ export const SessionManager: React.FC = () => {
     }
   }, [searchParams, currentSession.teams.length]);
 
-  // SMART AUTO ADVANCE LOGIC
+  // SMART AUTO SCROLL LOGIC (Instead of Advance)
   const prevPresentCount = useRef(currentSession.presentPersonIds.length);
+  const nextButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const currentCount = currentSession.presentPersonIds.length;
@@ -75,10 +76,10 @@ export const SessionManager: React.FC = () => {
         const allPresent = clubPeople.every(p => currentSession.presentPersonIds.includes(p.id));
         
         if (allPresent) {
-            const timer = setTimeout(() => {
-                setStep(2);
-            }, 500); // 0.5s delay for visual feedback
-            return () => clearTimeout(timer);
+            // Scroll to the next button instead of auto advancing
+            setTimeout(() => {
+                nextButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
         }
     }
   }, [currentSession.presentPersonIds, clubPeople, step]);
@@ -226,7 +227,14 @@ export const SessionManager: React.FC = () => {
             })}
           </div>
           <div className="mt-8 pt-4 border-t border-slate-100 flex justify-end">
-            <button onClick={() => setStep(2)} disabled={currentSession.presentPersonIds.length === 0} className="w-full md:w-auto bg-brand-600 disabled:opacity-50 hover:bg-brand-500 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg">הבא: ציוד <ArrowLeft size={16} /></button>
+            <button 
+                ref={nextButtonRef}
+                onClick={() => setStep(2)} 
+                disabled={currentSession.presentPersonIds.length === 0} 
+                className="w-full md:w-auto bg-brand-600 disabled:opacity-50 hover:bg-brand-500 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 shadow-lg"
+            >
+                הבא: ציוד <ArrowLeft size={16} />
+            </button>
           </div>
         </div>
       )}
