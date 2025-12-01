@@ -208,17 +208,19 @@ export const SessionManager: React.FC = () => {
               return (
                 <button key={person.id} onClick={() => toggleAttendance(person.id)} className={getCardStyle(person.role, isPresent)}>
                   <div>
-                    <div className={`font-bold ${isPresent ? '' : 'text-slate-800'}`}>{person.name}</div>
-                    {person.phone && (
-                        <div className={`text-xs mt-0.5 text-left ${isPresent ? 'text-slate-600' : 'text-slate-400'}`} dir="ltr">
-                            {person.phone}
-                        </div>
-                    )}
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className={`font-bold text-lg ${isPresent ? '' : 'text-slate-800'}`}>{person.name}</span>
+                        {person.phone && (
+                            <span className={`text-sm ${isPresent ? 'text-slate-600' : 'text-slate-400'}`} dir="ltr">
+                                {person.phone}
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${person.role === Role.VOLUNTEER ? 'bg-orange-100 text-orange-700' : 'bg-sky-100 text-sky-700'}`}>{RoleLabel[person.role]}</span>
                     </div>
                   </div>
-                  {isPresent ? <CheckCircle2 className="text-brand-600" size={22} /> : <Circle className="text-slate-300" size={22} />}
+                  {isPresent ? <CheckCircle2 className="text-brand-600" size={24} /> : <Circle className="text-slate-300" size={24} />}
                 </button>
               );
             })}

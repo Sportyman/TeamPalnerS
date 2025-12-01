@@ -34,7 +34,7 @@ const SuperAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
     return <>{children}</>;
 };
 
-const NavLink: React.FC<{ to: string; icon: React.ReactNode; text: string; onClick?: () => void }> = ({ to, icon, text, onClick }) => {
+const NavLink: React.FC<{ to: string; icon: React.ReactNode; text: string; onClick?: () => void; className?: string }> = ({ to, icon, text, onClick, className }) => {
   const location = useLocation();
   const isActive = location.pathname + location.search === to;
   
@@ -42,7 +42,7 @@ const NavLink: React.FC<{ to: string; icon: React.ReactNode; text: string; onCli
     <Link 
       to={to} 
       onClick={onClick}
-      className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
+      className={`rounded-lg font-medium flex items-center gap-3 transition-colors ${className} ${
         isActive 
           ? 'text-brand-600 bg-brand-50' 
           : 'text-slate-600 hover:text-brand-600 hover:bg-slate-50'
@@ -72,18 +72,18 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative flex justify-between h-16 items-center">
             
-            {/* Right: Mobile Menu & Desktop Nav */}
-            <div className="flex items-center gap-2 md:gap-8 z-20">
+            {/* Right: Hamburger Menu & Desktop Nav Links */}
+            <div className="flex items-center gap-4 z-20">
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden p-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none"
+                className="p-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none"
               >
-                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
               </button>
               
               <div className="hidden md:flex space-x-4 space-x-reverse">
-                <NavLink to="/app" icon={<Calendar size={18} />} text="אימון ראשי" />
-                <NavLink to="/app/manage?view=PEOPLE" icon={<Users size={18} />} text="משתתפים" />
+                <NavLink to="/app" icon={<Calendar size={18} />} text="אימון ראשי" className="px-3 py-2 text-sm" />
+                <NavLink to="/app/manage?view=PEOPLE" icon={<Users size={18} />} text="משתתפים" className="px-3 py-2 text-sm" />
               </div>
             </div>
 
@@ -114,58 +114,72 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Full Screen / Large Dropdown Menu */}
         {isMenuOpen && (
-          <div className="md:hidden bg-white border-b border-slate-200 animate-in slide-in-from-top-5 relative z-50">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <div className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  אימון ושיבוץ
-              </div>
-              <NavLink 
-                to="/app?step=1" 
-                icon={<ClipboardCheck size={18} />} 
-                text="בדיקת נוכחות" 
-                onClick={() => setIsMenuOpen(false)}
-              />
-               <NavLink 
-                to="/app?step=2" 
-                icon={<Ship size={18} />} 
-                text="הגדרת ציוד" 
-                onClick={() => setIsMenuOpen(false)}
-              />
-               <NavLink 
-                to="/app" 
-                icon={<Calendar size={18} />} 
-                text="אימון נוכחי" 
-                onClick={() => setIsMenuOpen(false)}
-              />
-              
-              <div className="border-t border-slate-100 my-2"></div>
-              
-              <div className="px-3 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  ניהול
-              </div>
-              <NavLink 
-                to="/app/manage?view=PEOPLE" 
-                icon={<Users size={18} />} 
-                text="ניהול משתתפים" 
-                onClick={() => setIsMenuOpen(false)}
-              />
-               <NavLink 
-                to="/app/manage?view=INVENTORY" 
-                icon={<Settings size={18} />} 
-                text="ניהול ציוד ומלאי" 
-                onClick={() => setIsMenuOpen(false)}
-              />
+          <div className="absolute top-16 inset-x-0 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xl z-50 animate-in slide-in-from-top-2">
+            <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                      <div className="px-3 py-2 text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
+                          אימון ושיבוץ
+                      </div>
+                      <div className="space-y-2">
+                        <NavLink 
+                            to="/app?step=1" 
+                            icon={<ClipboardCheck size={24} />} 
+                            text="בדיקת נוכחות" 
+                            className="px-4 py-3 text-lg"
+                            onClick={() => setIsMenuOpen(false)}
+                        />
+                        <NavLink 
+                            to="/app?step=2" 
+                            icon={<Ship size={24} />} 
+                            text="הגדרת ציוד" 
+                            className="px-4 py-3 text-lg"
+                            onClick={() => setIsMenuOpen(false)}
+                        />
+                        <NavLink 
+                            to="/app" 
+                            icon={<Calendar size={24} />} 
+                            text="לוח שיבוץ ראשי" 
+                            className="px-4 py-3 text-lg"
+                            onClick={() => setIsMenuOpen(false)}
+                        />
+                      </div>
+                  </div>
+                  
+                  <div>
+                      <div className="px-3 py-2 text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
+                          ניהול שוטף
+                      </div>
+                      <div className="space-y-2">
+                        <NavLink 
+                            to="/app/manage?view=PEOPLE" 
+                            icon={<Users size={24} />} 
+                            text="ניהול משתתפים" 
+                            className="px-4 py-3 text-lg"
+                            onClick={() => setIsMenuOpen(false)}
+                        />
+                        <NavLink 
+                            to="/app/manage?view=INVENTORY" 
+                            icon={<Settings size={24} />} 
+                            text="ניהול ציוד ומלאי" 
+                            className="px-4 py-3 text-lg"
+                            onClick={() => setIsMenuOpen(false)}
+                        />
+                      </div>
+                  </div>
+               </div>
 
-              <div className="pt-2 border-t border-slate-100 mt-2 flex justify-between items-center px-3 py-2">
-                 <div className="text-xs text-slate-400">
-                    {user?.email}
-                 </div>
-                 <div className="text-xs text-slate-300 font-mono">
-                    v{APP_VERSION}
-                 </div>
-              </div>
+               <div className="border-t border-slate-200 mt-6 pt-4 flex justify-between items-center px-4">
+                  <div className="flex flex-col">
+                     <span className="text-sm font-medium text-slate-600">{user?.email}</span>
+                     <span className="text-xs text-slate-400">מחובר כרגע</span>
+                  </div>
+                  <div className="text-xs text-slate-300 font-mono">
+                     v{APP_VERSION}
+                  </div>
+               </div>
             </div>
           </div>
         )}
