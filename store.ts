@@ -50,6 +50,7 @@ interface AppState {
   updatePerson: (person: Person) => void;
   removePerson: (id: string) => void;
   restoreDemoData: () => void;
+  importClubData: (data: any) => void; // New Action for Backup Restore
   
   // Session Management
   toggleAttendance: (id: string) => void;
@@ -219,6 +220,40 @@ export const useAppStore = create<AppState>()(
           },
           pairingDirty: false
         };
+      }),
+
+      importClubData: (data: any) => set((state) => {
+          if (!state.activeClub) return state;
+          const currentClubId = state.activeClub;
+
+          // 1. Basic Validation
+          if (!data || !data.clubId || data.clubId !== currentClubId) {
+             console.error("Backup file is for a different club or invalid.");
+             alert("קובץ זה אינו תואם לחוג הנוכחי.");
+             return state;
+          }
+
+          // 2. Filter out *all* current people of this club
+          const otherPeople = state.people.filter(p => p.clubId !== currentClubId);
+          
+          // 3. Combine with imported people
+          const importedPeople = (data.people || []).map((p: Person) => ({
+              ...p,
+              clubId: currentClubId // ensure ID safety
+          }));
+          
+          return {
+              people: [...otherPeople, ...importedPeople],
+              clubSettings: {
+                  ...state.clubSettings,
+                  [currentClubId]: data.settings || { boatDefinitions: [] }
+              },
+              sessions: {
+                  ...state.sessions,
+                  [currentClubId]: data.session || EMPTY_SESSION
+              },
+              pairingDirty: true
+          };
       }),
 
       toggleAttendance: (id) => set((state) => {

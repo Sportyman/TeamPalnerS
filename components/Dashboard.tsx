@@ -1,8 +1,7 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../store';
-import { Role, getRoleLabel, Person, Gender, GenderLabel, BoatDefinition, GenderPrefType, GenderPrefLabels, ConstraintStrength } from '../types';
-import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar, Plus, Anchor, Wind, Users2, ShieldAlert, AlertOctagon, Heart, Ban, Shield, ShipWheel } from 'lucide-react';
+import { Role, getRoleLabel, Person, Gender, GenderLabel, BoatDefinition, GenderPrefType, GenderPrefLabels, ConstraintStrength, APP_VERSION } from '../types';
+import { Trash2, UserPlus, Star, Edit, X, Save, ArrowRight, Tag, Database, Ship, Users, Calendar, Plus, Anchor, Wind, Users2, ShieldAlert, AlertOctagon, Heart, Ban, Shield, ShipWheel, Download, Upload } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 type ViewMode = 'MENU' | 'PEOPLE' | 'INVENTORY';
@@ -158,11 +157,13 @@ export const Dashboard: React.FC = () => {
   const { 
       people, 
       activeClub,
+      sessions,
       clubs, 
       addPerson, 
       updatePerson, 
       removePerson, 
       restoreDemoData,
+      importClubData,
       clubSettings,
       saveBoatDefinitions 
     } = useAppStore();
@@ -170,6 +171,9 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [view, setView] = useState<ViewMode>('MENU');
+  
+  // Hidden file input ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const viewParam = searchParams.get('view');
@@ -227,6 +231,58 @@ export const Dashboard: React.FC = () => {
 
   const clubPeople = people.filter(p => p.clubId === activeClub);
   const boatDefinitions = currentSettings.boatDefinitions;
+
+  // --- Backup / Restore Handlers ---
+  const handleExport = () => {
+      const dataToSave = {
+          version: APP_VERSION,
+          date: new Date().toISOString(),
+          clubId: activeClub,
+          clubLabel: currentClubLabel,
+          people: people.filter(p => p.clubId === activeClub),
+          settings: clubSettings[activeClub],
+          session: sessions[activeClub]
+      };
+      
+      const blob = new Blob([JSON.stringify(dataToSave, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-${currentClubLabel.replace(/\s/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+      fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      if(!confirm('שחזור מגיבוי ימחק את כל המשתתפים וההגדרות הנוכחיים של חוג זה ויחליף אותם בנתונים מהקובץ. האם להמשיך?')) {
+          e.target.value = ''; // Reset input
+          return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+          try {
+              const json = JSON.parse(event.target?.result as string);
+              importClubData(json);
+              alert('הנתונים שוחזרו בהצלחה!');
+              window.location.reload(); // Reload to ensure clean state
+          } catch (err) {
+              console.error(err);
+              alert('שגיאה בטעינת הקובץ. ודא שזהו קובץ JSON תקין של המערכת.');
+          }
+      };
+      reader.readAsText(file);
+      e.target.value = ''; // Reset input for next time
+  };
 
   // --- People Handlers ---
   const formatPhoneNumber = (value: string) => {
@@ -717,14 +773,42 @@ export const Dashboard: React.FC = () => {
            <ArrowRight size={20} /> חזרה לתפריט
       </button>
 
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-2xl font-bold text-slate-800">רשימת משתתפים ({clubPeople.length})</h2>
-          <button 
-             onClick={() => { setIsAddFormOpen(true); setPhoneError(''); }}
-             className="bg-brand-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-bold shadow-sm hover:bg-brand-500"
-          >
-              <UserPlus size={20} /> משתתף חדש
-          </button>
+          
+          <div className="flex gap-2 w-full sm:w-auto">
+             {/* Hidden Import Input */}
+             <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept=".json" 
+                className="hidden" 
+             />
+             
+             {/* Export/Import Buttons */}
+             <button 
+                onClick={handleExport}
+                className="bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 px-3 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-colors"
+                title="שמור גיבוי לקובץ"
+             >
+                 <Download size={18} /> <span className="hidden sm:inline">שמור גיבוי</span>
+             </button>
+             <button 
+                onClick={handleImportClick}
+                className="bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-300 px-3 py-2 rounded-lg flex items-center gap-2 font-medium shadow-sm transition-colors"
+                title="טען נתונים מקובץ"
+             >
+                 <Upload size={18} /> <span className="hidden sm:inline">טען גיבוי</span>
+             </button>
+
+             <button 
+                onClick={() => { setIsAddFormOpen(true); setPhoneError(''); }}
+                className="bg-brand-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 font-bold shadow-sm hover:bg-brand-500 mr-auto sm:mr-0"
+             >
+                <UserPlus size={20} /> משתתף חדש
+             </button>
+          </div>
       </div>
       
        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
@@ -856,7 +940,7 @@ export const Dashboard: React.FC = () => {
                         className="w-5 h-5 text-blue-600 rounded"
                     />
                     <label htmlFor="newIsSkipper" className="text-sm font-bold text-blue-800 flex items-center gap-2">
-                         <ShipWheel size={18} /> {newGender === Gender.MALE ? 'מוסמך כסקיפר?' : 'מוסמכת כסקיפר?'}
+                         <ShipWheel size={18} /> {newGender === Gender.FEMALE ? 'מוסמכת כסקיפר?' : 'מוסמך כסקיפר?'}
                     </label>
                 </div>
 
@@ -1014,7 +1098,7 @@ export const Dashboard: React.FC = () => {
                         className="w-5 h-5 text-blue-600 rounded"
                     />
                     <label htmlFor="editIsSkipper" className="text-sm font-bold text-blue-800 flex items-center gap-2">
-                         <ShipWheel size={18} /> {editingPerson.gender === Gender.MALE ? 'מוסמך כסקיפר?' : 'מוסמכת כסקיפר?'}
+                         <ShipWheel size={18} /> {editingPerson.gender === Gender.FEMALE ? 'מוסמכת כסקיפר?' : 'מוסמך כסקיפר?'}
                     </label>
                 </div>
 
